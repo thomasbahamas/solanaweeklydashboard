@@ -65,12 +65,12 @@ def fetch_dex_volumes() -> dict:
         spot_change = round(data.get("change_1d", 0), 1)
 
         protocols = data.get("protocols", [])
-        protocols.sort(key=lambda x: x.get("total24h", 0), reverse=True)
+        protocols.sort(key=lambda x: x.get("total24h") or 0, reverse=True)
         for p in protocols[:15]:
             top_spot.append({
                 "name": p.get("name", "Unknown"),
-                "volume_24h": p.get("total24h", 0),
-                "change_1d": round(p.get("change_1d", 0), 1),
+                "volume_24h": p.get("total24h") or 0,
+                "change_1d": round(p.get("change_1d") or 0, 1),
             })
 
     # Perp DEX volumes
@@ -82,15 +82,15 @@ def fetch_dex_volumes() -> dict:
     if perp_data:
         perp_volume = perp_data.get("total24h", 0)
         protocols = perp_data.get("protocols", [])
-        protocols.sort(key=lambda x: x.get("total24h", 0), reverse=True)
+        protocols.sort(key=lambda x: x.get("total24h") or 0, reverse=True)
         for p in protocols[:10]:
             top_perps.append({
                 "name": p.get("name", "Unknown"),
-                "volume_24h": p.get("total24h", 0),
-                "change_1d": round(p.get("change_1d", 0), 1),
+                "volume_24h": p.get("total24h") or 0,
+                "change_1d": round(p.get("change_1d") or 0, 1),
             })
 
-    return {
+    result = {
         "spot_24h": spot_volume,
         "spot_change_1d": spot_change,
         "perp_24h": perp_volume,
@@ -98,6 +98,16 @@ def fetch_dex_volumes() -> dict:
         "top_spot": top_spot,
         "top_perps": top_perps,
     }
+
+    # Coverage percentages
+    if spot_volume and top_spot:
+        coverage = sum(d.get("volume_24h", 0) for d in top_spot)
+        result["spot_coverage_pct"] = round(coverage / spot_volume * 100, 1) if spot_volume else 0
+    if perp_volume and top_perps:
+        coverage = sum(d.get("volume_24h", 0) for d in top_perps)
+        result["perp_coverage_pct"] = round(coverage / perp_volume * 100, 1) if perp_volume else 0
+
+    return result
 
 
 def fetch_protocol_rankings() -> list:
@@ -162,6 +172,10 @@ def fetch_network_stats() -> dict:
         stats["tps_total"] = round(total_txs / total_seconds, 1) if total_seconds else 0
         stats["tps_non_vote"] = round(non_vote / total_seconds, 1) if total_seconds else 0
         stats["vote_pct"] = round((1 - non_vote / total_txs) * 100, 1) if total_txs else 0
+
+    # Estimated daily transactions
+    if stats.get("tps_total"):
+        stats["daily_transactions_est"] = round(stats["tps_total"] * 86400)
 
     # Epoch info
     epoch = rpc_post("getEpochInfo")

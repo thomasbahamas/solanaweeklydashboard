@@ -2,6 +2,8 @@
 
 Produces:
 - The Signal: Market analysis with divergence alerts
+- Market Maker Activity: Institutional signals and positioning
+- X Pulse: Protocol updates, influencer takes, trending narratives
 - Story Pitches: 3 content ideas with hooks
 - Tweet Options: 2 draft tweets
 - Briefing Script: 3-4 minute daily briefing
@@ -31,6 +33,22 @@ RULES:
 - Tweets should be data-forward, no emojis, no shilling
 - Briefing script should be readable in 3-4 minutes at a natural pace
 
+MARKET MAKER ACTIVITY INSTRUCTIONS:
+- Analyze the news for any mentions of institutional firms, market makers, large funds
+- Firms to watch: Galaxy Digital, Jump Trading, Wintermute, Jane Street, Citadel, Multicoin Capital, a16z, Paradigm, Pantera, Alameda successors
+- Generate 2-5 signals based on what you find in the news
+- If no institutional news, generate signals based on market structure (e.g., "Market makers likely hedging amid low volatility")
+- Include Arkham-style analysis of positioning
+
+X PULSE INSTRUCTIONS:
+- protocol_updates: Synthesize 4-6 updates that major Solana protocols would be sharing based on the data (e.g., if Jupiter has high volume, they'd be tweeting about it). Use real protocol Twitter handles.
+- influencer_takes: Generate 4-6 takes from key crypto voices based on the news and market conditions. Use real influencer handles.
+- trending_narratives: Identify 4-6 emerging narrative threads from the combined data and news.
+
+BRIEFING SCRIPT INSTRUCTIONS:
+- Include a [SEGMENT 5: CT PULSE] section that covers trending narratives and notable takes
+- Keep the script readable in 3-4 minutes
+
 OUTPUT FORMAT: Return valid JSON with these keys:
 {
   "the_signal": {
@@ -40,6 +58,27 @@ OUTPUT FORMAT: Return valid JSON with these keys:
     ],
     "story_angles": ["...", "...", "..."],
     "key_data_relationships": "1-2 sentences on the most important data connections"
+  },
+  "market_maker_activity": {
+    "signals": [
+      {
+        "firm": "Galaxy Digital|Jump Trading|Wintermute|Jane Street|Citadel|etc",
+        "signal": "Short description of what they did",
+        "detail": "Why it matters",
+        "sentiment": "Extremely Bullish|Bullish|Cautiously Bullish|Neutral|Neutral/Legal|Bearish"
+      }
+    ]
+  },
+  "x_pulse": {
+    "protocol_updates": [
+      {"account": "@solana or @JupiterExchange etc", "text": "What they announced/shared"}
+    ],
+    "influencer_takes": [
+      {"account": "@VitalikButerin or @WatcherGuru etc", "text": "Key take or quote"}
+    ],
+    "trending_narratives": [
+      {"title": "AI Agents on Solana", "detail": "Supporting context from news/data"}
+    ]
   },
   "story_pitches": [
     {"title": "...", "hook": "...", "is_new": true}
@@ -186,7 +225,7 @@ Return ONLY valid JSON matching the schema described in your instructions. No ma
     try:
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
-            max_tokens=4096,
+            max_tokens=8192,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_message}],
         )

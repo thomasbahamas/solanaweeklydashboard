@@ -4,6 +4,7 @@ import requests
 from config import (
     load_json, get_logger,
     TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID,
+    GITHUB_PAGES_URL,
 )
 
 log = get_logger("telegram")
@@ -79,7 +80,10 @@ def build_summary() -> str:
         first_sentence = context.split(".")[0] + "."
         lines.append(f"\n💡 {first_sentence}")
 
-    lines.append("\n🔗 Dashboard: [link to GitHub Pages]")
+    if GITHUB_PAGES_URL:
+        lines.append(f"\n🔗 Dashboard: {GITHUB_PAGES_URL}")
+    else:
+        lines.append("\n🔗 Dashboard: Check GitHub Pages")
 
     return "\n".join(lines)
 

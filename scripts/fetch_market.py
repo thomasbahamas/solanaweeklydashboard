@@ -1,11 +1,26 @@
-"""Fetch market overview data: prices, dominance, F&G, trending, technicals."""
+"""Fetch market overview data: prices, dominance, F&G, trending, technicals.
 
+Uses CoinGecko as primary source with CoinPaprika as free fallback
+when CoinGecko credits are exhausted.
+"""
+
+from datetime import datetime, timedelta, timezone
 from config import (
     api_get, save_json, get_logger, now_utc,
     WATCHLIST,
 )
 
 log = get_logger("fetch_market")
+
+# CoinPaprika ID mapping for fallback
+PAPRIKA_IDS = {
+    "bitcoin": "btc-bitcoin",
+    "ethereum": "eth-ethereum",
+    "solana": "sol-solana",
+    "hyperliquid": "hype-hyperliquid",
+    "zcash": "zec-zcash",
+    "near": "near-near-protocol",
+}
 
 
 def fetch_fear_greed() -> dict:
@@ -21,8 +36,11 @@ def fetch_fear_greed() -> dict:
     }
 
 
-def fetch_prices() -> dict:
-    """CoinGecko prices, market cap, 24h change for watchlist."""
+# ---------------------------------------------------------------------------
+# Prices
+# ---------------------------------------------------------------------------
+
+def _fetch_prices_coingecko() -> dict | None:
     ids = ",".join(WATCHLIST.keys())
     data = api_get(
         "https://api.coingecko.com/api/v3/coins/markets",
@@ -34,9 +52,8 @@ def fetch_prices() -> dict:
             "price_change_percentage": "24h,7d",
         },
     )
-    if not data:
-        return {}
-
+    if not data or not isinstance(data, list):
+        return None
     prices = {}
     for coin in data:
         ticker = WATCHLIST.get(coin["id"], coin["symbol"].upper())
@@ -54,11 +71,48 @@ def fetch_prices() -> dict:
     return prices
 
 
-def fetch_global() -> dict:
-    """CoinGecko global market data: total market cap, BTC/SOL dominance."""
+def _fetch_prices_paprika() -> dict | None:
+    data = api_get("https://api.coinpaprika.com/v1/tickers")
+    if not data or not isinstance(data, list):
+        return None
+    lookup = {coin["id"]: coin for coin in data}
+    prices = {}
+    for cg_id, ticker in WATCHLIST.items():
+        paprika_id = PAPRIKA_IDS.get(cg_id)
+        if not paprika_id or paprika_id not in lookup:
+            continue
+        coin = lookup[paprika_id]
+        usd = coin.get("quotes", {}).get("USD", {})
+        prices[ticker] = {
+            "name": coin.get("name", ticker),
+            "price": usd.get("price", 0),
+            "market_cap": usd.get("market_cap", 0),
+            "change_24h": round(usd.get("percent_change_24h", 0) or 0, 1),
+            "change_7d": round(usd.get("percent_change_7d", 0) or 0, 1),
+            "high_24h": None,
+            "low_24h": None,
+            "ath": usd.get("ath_price"),
+            "atl": None,
+        }
+    return prices if prices else None
+
+
+def fetch_prices() -> dict:
+    prices = _fetch_prices_coingecko()
+    if prices:
+        return prices
+    log.warning("CoinGecko prices failed, falling back to CoinPaprika...")
+    return _fetch_prices_paprika() or {}
+
+
+# ---------------------------------------------------------------------------
+# Global market data
+# ---------------------------------------------------------------------------
+
+def _fetch_global_coingecko() -> dict | None:
     data = api_get("https://api.coingecko.com/api/v3/global")
     if not data or "data" not in data:
-        return {}
+        return None
     g = data["data"]
     return {
         "total_market_cap": g["total_market_cap"].get("usd", 0),
@@ -70,11 +124,36 @@ def fetch_global() -> dict:
     }
 
 
-def fetch_trending() -> list:
-    """CoinGecko trending coins."""
+def _fetch_global_paprika() -> dict | None:
+    data = api_get("https://api.coinpaprika.com/v1/global")
+    if not data:
+        return None
+    return {
+        "total_market_cap": data.get("market_cap_usd", 0),
+        "total_volume_24h": data.get("volume_24h_usd", 0),
+        "market_cap_change_24h": round(data.get("market_cap_change_24h", 0) or 0, 1),
+        "btc_dominance": round(data.get("bitcoin_dominance_percentage", 0), 1),
+        "eth_dominance": 0,
+        "sol_dominance": 0,
+    }
+
+
+def fetch_global() -> dict:
+    result = _fetch_global_coingecko()
+    if result:
+        return result
+    log.warning("CoinGecko global failed, falling back to CoinPaprika...")
+    return _fetch_global_paprika() or {}
+
+
+# ---------------------------------------------------------------------------
+# Trending
+# ---------------------------------------------------------------------------
+
+def _fetch_trending_coingecko() -> list | None:
     data = api_get("https://api.coingecko.com/api/v3/search/trending")
     if not data or "coins" not in data:
-        return []
+        return None
     trending = []
     for item in data["coins"][:10]:
         c = item["item"]
@@ -86,54 +165,101 @@ def fetch_trending() -> list:
     return trending
 
 
-def fetch_sol_technicals(prices: dict) -> dict:
-    """Basic SOL technical analysis using CoinGecko OHLC data."""
-    # Get 90-day OHLC for moving averages
+def _fetch_trending_paprika() -> list | None:
+    """Top movers by 24h change as a trending proxy."""
+    data = api_get("https://api.coinpaprika.com/v1/tickers", params={"limit": 100})
+    if not data or not isinstance(data, list):
+        return None
+    for coin in data:
+        usd = coin.get("quotes", {}).get("USD", {})
+        coin["_abs_change"] = abs(usd.get("percent_change_24h", 0) or 0)
+    data.sort(key=lambda x: x["_abs_change"], reverse=True)
+    return [
+        {
+            "name": coin.get("name", "Unknown"),
+            "symbol": coin.get("symbol", "?"),
+            "market_cap_rank": coin.get("rank"),
+        }
+        for coin in data[:10]
+    ]
+
+
+def fetch_trending() -> list:
+    result = _fetch_trending_coingecko()
+    if result:
+        return result
+    log.warning("CoinGecko trending failed, falling back to CoinPaprika...")
+    return _fetch_trending_paprika() or []
+
+
+# ---------------------------------------------------------------------------
+# SOL Technicals
+# ---------------------------------------------------------------------------
+
+def _fetch_sol_ohlc_coingecko() -> list | None:
     ohlc = api_get(
         "https://api.coingecko.com/api/v3/coins/solana/ohlc",
         params={"vs_currency": "usd", "days": "365"},
     )
-    if not ohlc or len(ohlc) < 50:
-        return {"note": "Insufficient data for technicals"}
+    if not ohlc or not isinstance(ohlc, list) or len(ohlc) < 50:
+        return None
+    # CoinGecko format: [timestamp_ms, open, high, low, close]
+    return [{"ts": candle[0] / 1000, "open": candle[1], "close": candle[4]} for candle in ohlc]
 
-    closes = [candle[4] for candle in ohlc]  # close prices
-    current = closes[-1] if closes else prices.get("SOL", {}).get("price", 0)
 
-    # Simple moving averages
-    ma_50 = round(sum(closes[-50:]) / 50, 2) if len(closes) >= 50 else None
-    ma_200 = round(sum(closes[-200:]) / 200, 2) if len(closes) >= 200 else None
+def _fetch_sol_ohlc_paprika() -> list | None:
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=365)
+    data = api_get(
+        "https://api.coinpaprika.com/v1/coins/sol-solana/ohlcv/historical",
+        params={
+            "start": start.strftime("%Y-%m-%d"),
+            "end": end.strftime("%Y-%m-%d"),
+        },
+    )
+    if not data or not isinstance(data, list) or len(data) < 50:
+        return None
+    candles = []
+    for candle in data:
+        if "close" not in candle or "open" not in candle:
+            continue
+        ts = candle.get("timestamp", candle.get("time_open", ""))
+        # Parse ISO timestamp to unix timestamp
+        try:
+            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            unix_ts = dt.timestamp()
+        except (ValueError, AttributeError):
+            unix_ts = 0
+        candles.append({"ts": unix_ts, "open": candle["open"], "close": candle["close"]})
+    return candles if candles else None
 
-    # RSI (14-period)
-    rsi = _calc_rsi(closes, 14)
 
-    # 52-week range from available data
-    high_52w = max(closes) if closes else None
-    low_52w = min(closes) if closes else None
+def _calc_monthly_returns(candles: list) -> list:
+    """Group candles by month and calculate (last_close - first_open) / first_open * 100."""
+    from collections import OrderedDict
 
-    # MA signal
-    if ma_50 and ma_200:
-        if current > ma_50 > ma_200:
-            ma_signal = "Bullish (Price > 50MA > 200MA)"
-        elif current < ma_50 < ma_200:
-            ma_signal = "Bearish (Price < 50MA < 200MA)"
+    months = OrderedDict()
+    for c in candles:
+        dt = datetime.fromtimestamp(c["ts"], tz=timezone.utc)
+        key = dt.strftime("%Y-%m")
+        if key not in months:
+            months[key] = {"first_open": c["open"], "last_close": c["close"]}
         else:
-            ma_signal = "Mixed"
-    else:
-        ma_signal = "Insufficient data"
+            months[key]["last_close"] = c["close"]
 
-    return {
-        "price": current,
-        "ma_50": ma_50,
-        "ma_200": ma_200,
-        "rsi_14": rsi,
-        "high_52w": high_52w,
-        "low_52w": low_52w,
-        "ma_signal": ma_signal,
-    }
+    results = []
+    for month_key, vals in months.items():
+        first_open = vals["first_open"]
+        last_close = vals["last_close"]
+        if first_open and first_open != 0:
+            ret = round((last_close - first_open) / first_open * 100, 1)
+        else:
+            ret = 0.0
+        results.append({"month": month_key, "return_pct": ret})
+    return results
 
 
 def _calc_rsi(prices: list, period: int = 14) -> float | None:
-    """Calculate RSI from price series."""
     if len(prices) < period + 1:
         return None
     deltas = [prices[i] - prices[i - 1] for i in range(1, len(prices))]
@@ -145,6 +271,53 @@ def _calc_rsi(prices: list, period: int = 14) -> float | None:
     rs = avg_gain / avg_loss
     return round(100 - (100 / (1 + rs)), 1)
 
+
+def fetch_sol_technicals(prices: dict) -> dict:
+    candles = _fetch_sol_ohlc_coingecko()
+    if not candles:
+        log.warning("CoinGecko OHLC failed, falling back to CoinPaprika...")
+        candles = _fetch_sol_ohlc_paprika()
+    if not candles:
+        return {"note": "Insufficient data for technicals"}
+
+    # Extract close prices from candle dicts
+    closes = [c["close"] for c in candles]
+
+    current = closes[-1] if closes else prices.get("SOL", {}).get("price", 0)
+
+    ma_50 = round(sum(closes[-50:]) / 50, 2) if len(closes) >= 50 else None
+    ma_200 = round(sum(closes[-200:]) / 200, 2) if len(closes) >= 200 else None
+    rsi = _calc_rsi(closes, 14)
+    high_52w = max(closes) if closes else None
+    low_52w = min(closes) if closes else None
+
+    if ma_50 and ma_200:
+        if current > ma_50 > ma_200:
+            ma_signal = "Bullish (Price > 50MA > 200MA)"
+        elif current < ma_50 < ma_200:
+            ma_signal = "Bearish (Price < 50MA < 200MA)"
+        else:
+            ma_signal = "Mixed"
+    else:
+        ma_signal = "Insufficient data"
+
+    monthly_returns = _calc_monthly_returns(candles)
+
+    return {
+        "price": current,
+        "ma_50": ma_50,
+        "ma_200": ma_200,
+        "rsi_14": rsi,
+        "high_52w": high_52w,
+        "low_52w": low_52w,
+        "ma_signal": ma_signal,
+        "monthly_returns": monthly_returns,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Pipeline entry point
+# ---------------------------------------------------------------------------
 
 def run() -> dict:
     log.info("Fetching market data...")
