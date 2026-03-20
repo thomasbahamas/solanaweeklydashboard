@@ -1,4 +1,4 @@
-"""Shared configuration and utilities for Solana Floor dashboard pipeline."""
+"""Shared configuration and utilities for Solana Weekly dashboard pipeline."""
 
 import os
 import json
@@ -30,7 +30,7 @@ SOLANA_RPC_URL = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.co
 
 # Default headers for all API requests
 DEFAULT_HEADERS = {
-    "User-Agent": "SolanaFloorDashboard/1.0 (+https://github.com/solanafloor-dashboard)",
+    "User-Agent": "SolanaWeeklyDashboard/1.0 (+https://solanaweekly.io)",
     "Accept": "application/json",
 }
 

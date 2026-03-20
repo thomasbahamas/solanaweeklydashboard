@@ -1,4 +1,4 @@
-"""Generate the Solana Floor dashboard as a static HTML page.
+"""Generate the Solana Weekly dashboard as a static HTML page.
 
 Tabbed interface with sections:
   Overview  — Market, Technical, News
@@ -893,7 +893,7 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Solana Floor Daily Dashboard</title>
+<title>Solana Weekly Dashboard</title>
 <style>{CSS}</style>
 </head>
 <body>
@@ -901,7 +901,7 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
 <!-- HEADER -->
 <div class="header">
   <div class="header-left">
-    <h1>SOLANA FLOOR</h1>
+    <h1>SOLANA WEEKLY</h1>
     <div class="meta">Updated: {esc(generated_at)}{f" &middot; Run #{run_num}" if run_num else ""}</div>
   </div>
   <div class="header-right">
@@ -963,7 +963,7 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
 <div class="panel" id="panel-tweets">{build_tweets_panel(tweets)}</div>
 <div class="panel" id="panel-briefing">{build_briefing_panel(briefing)}</div>
 
-<footer>Solana Floor Daily Intelligence &middot; Built for @thomasbahamas &middot; {esc(generated_at)}</footer>
+<footer>Solana Weekly Intelligence &middot; Built for @thomasbahamas &middot; {esc(generated_at)}</footer>
 
 <script>{JS}</script>
 </body>

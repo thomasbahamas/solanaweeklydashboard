@@ -51,7 +51,7 @@ def build_summary() -> str:
     sol_tvl = solana.get("solana_tvl", {})
 
     lines = [
-        "<b>SOLANA FLOOR DAILY</b>",
+        "<b>SOLANA WEEKLY</b>",
         f"F&G: {fg.get('value', 'N/A')} — {fg.get('label', '')}",
         "",
     ]

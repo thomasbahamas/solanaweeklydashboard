@@ -1,6 +1,6 @@
-# Solana Floor Daily Dashboard
+# Solana Weekly Dashboard
 
-Automated daily intelligence dashboard for Solana Floor content production.
+Automated weekly intelligence dashboard for Solana Weekly content production.
 
 ## Architecture
 

@@ -1,4 +1,4 @@
-"""Run the full Solana Floor dashboard pipeline.
+"""Run the full Solana Weekly dashboard pipeline.
 
 Usage:
     python scripts/run_pipeline.py              # Full pipeline (fetch + AI + dashboard)
@@ -36,13 +36,13 @@ def run_step(name: str, module_name: str) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Solana Floor Dashboard Pipeline")
+    parser = argparse.ArgumentParser(description="Solana Weekly Dashboard Pipeline")
     parser.add_argument("--data-only", action="store_true", help="Only fetch data, skip AI and dashboard")
     parser.add_argument("--no-ai", action="store_true", help="Skip AI narrative generation")
     args = parser.parse_args()
 
     log.info("=" * 60)
-    log.info("SOLANA FLOOR DASHBOARD PIPELINE")
+    log.info("SOLANA WEEKLY DASHBOARD PIPELINE")
     log.info("=" * 60)
     total_start = time.time()
 

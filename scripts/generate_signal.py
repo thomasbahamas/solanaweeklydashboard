@@ -18,7 +18,7 @@ from config import (
 
 log = get_logger("generate_signal")
 
-SYSTEM_PROMPT = """You are the editorial intelligence engine for Solana Floor, a Solana ecosystem media brand.
+SYSTEM_PROMPT = """You are the editorial intelligence engine for Solana Weekly, a Solana ecosystem media brand.
 
 Your job is to analyze compiled market data and produce actionable content for video journalist Thomas Bahamas (@thomasbahamas).
 
@@ -215,7 +215,7 @@ def generate_narrative(compiled: dict) -> dict:
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     data_prompt = build_data_prompt(compiled)
 
-    user_message = f"""Here is today's compiled Solana Floor data. Analyze it and produce the full editorial package.
+    user_message = f"""Here is today's compiled Solana Weekly data. Analyze it and produce the full editorial package.
 
 {data_prompt}
 

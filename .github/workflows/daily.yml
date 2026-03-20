@@ -1,4 +1,4 @@
-name: Solana Floor Daily Dashboard
+name: Solana Weekly Dashboard
 
 on:
   schedule:
