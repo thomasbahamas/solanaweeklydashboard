@@ -42,6 +42,8 @@ WATCHLIST = {
     "bitcoin": "BTC",
     "ethereum": "ETH",
     "solana": "SOL",
+    "jito-governance-token": "JTO",
+    "bonk": "BONK",
     "hyperliquid": "HYPE",
     "zcash": "ZEC",
     "near": "NEAR",
