@@ -85,6 +85,9 @@ def main():
     # Step 5: Generate newsletter draft
     run_step("Generate Newsletter", "generate_newsletter")
 
+    # Step 6: Send newsletter via Kit
+    run_step("Deliver Newsletter", "deliver_newsletter")
+
     total_elapsed = time.time() - total_start
     log.info("")
     log.info("=" * 60)

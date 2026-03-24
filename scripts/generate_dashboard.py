@@ -1150,7 +1150,7 @@ function dashSubscribe(e) {
   fetch('https://api.convertkit.com/v3/forms/9240695/subscribe', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({api_key: 'kit_41894af17b9605e1a812af6e6156f2ed', email: email})
+    body: JSON.stringify({api_key: 'PvJNzxZ5JOLRr4pA0Mps2w', email: email})
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
@@ -1603,7 +1603,7 @@ function handleSubscribe(e) {{
     method: 'POST',
     headers: {{'Content-Type': 'application/json'}},
     body: JSON.stringify({{
-      api_key: 'kit_41894af17b9605e1a812af6e6156f2ed',
+      api_key: 'PvJNzxZ5JOLRr4pA0Mps2w',
       email: email
     }})
   }})
