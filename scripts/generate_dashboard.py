@@ -57,7 +57,8 @@ def fmt_wow(wow: dict, key: str) -> str:
         return '<span class="wow">WoW: collecting</span>'
     val = wow[key]
     color = "var(--green)" if val > 0 else "var(--red)" if val < 0 else "var(--muted)"
-    return f'<span class="wow" style="color:{color}">WoW: {val:+.1f}%</span>'
+    arrow = "&#9650;" if val > 0 else "&#9660;" if val < 0 else "&#8211;"
+    return f'<span class="wow" style="color:{color}">{arrow} {val:+.1f}% WoW</span>'
 
 
 def sentiment_dot(sentiment: str) -> str:
@@ -167,6 +168,27 @@ def svg_monthly_returns(monthly_returns):
     return f'<svg width="100%" viewBox="0 0 {total_w} {h + 10}" xmlns="http://www.w3.org/2000/svg"><line x1="30" y1="{mid_y}" x2="{total_w - 10}" y2="{mid_y}" stroke="#1e1e2e" stroke-width="1"/>{"".join(bars)}</svg>'
 
 
+def svg_sparkline(points, width=120, height=32, color=None):
+    """7-day sparkline as inline SVG. Points is a list of floats."""
+    if not points or len(points) < 2:
+        return ""
+    n = len(points)
+    mn, mx = min(points), max(points)
+    rng = mx - mn if mx != mn else 1
+    pad = 2
+    w = width - pad * 2
+    h = height - pad * 2
+    coords = []
+    for i, p in enumerate(points):
+        x = pad + (i / (n - 1)) * w
+        y = pad + h - ((p - mn) / rng) * h
+        coords.append(f"{x:.1f},{y:.1f}")
+    polyline = " ".join(coords)
+    if not color:
+        color = "var(--green)" if points[-1] >= points[0] else "var(--red)"
+    return f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" style="vertical-align:middle"><polyline points="{polyline}" fill="none" stroke="{color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+
+
 def svg_range_bar(current, low, high, width=200, height=24):
     """52-week range indicator."""
     if not all(isinstance(v, (int, float)) for v in [current, low, high]) or high <= low:
@@ -191,44 +213,65 @@ def svg_range_bar(current, low, high, width=200, height=24):
 
 def build_market_panel(prices, global_data, fg, wow):
     price_cards = ""
-    order = ["BTC", "ETH", "SOL", "HYPE", "ZEC", "NEAR"]
+    order = ["BTC", "ETH", "SOL", "JTO", "BONK", "HYPE", "ZEC"]
     for ticker in order:
         if ticker not in prices:
             continue
         d = prices[ticker]
+        sparkline = svg_sparkline(d.get("sparkline_7d", []), width=100, height=28)
         price_cards += f'''<div class="card price-card">
-  <div class="price-name">{esc(ticker)} <span class="muted">{esc(d.get("name",""))}</span></div>
-  <div class="price-val">${d["price"]:,.2f}</div>
-  <div>{fmt_change(d.get("change_24h"))}</div>
+  <div class="price-header">
+    <div>
+      <div class="price-name">{esc(ticker)} <span class="muted">{esc(d.get("name",""))}</span></div>
+      <div class="price-val">${d["price"]:,.2f}</div>
+      <div>{fmt_change(d.get("change_24h"))} <span class="muted" style="font-size:0.7rem">24h</span></div>
+    </div>
+    <div class="sparkline-wrap">{sparkline}</div>
+  </div>
+  <div class="price-7d">{fmt_change(d.get("change_7d"))} <span class="muted" style="font-size:0.7rem">7d</span></div>
 </div>'''
 
     fg_val = fg.get("value", "N/A")
     fg_label = fg.get("label", "")
-    gauge = svg_gauge(fg_val if isinstance(fg_val, (int, float)) else 50)
+    fg_yesterday = fg.get("yesterday", "N/A")
+    gauge = svg_gauge(fg_val if isinstance(fg_val, (int, float)) else 50, size=110)
+
+    # SOL/BTC ratio
+    sol_price = prices.get("SOL", {}).get("price", 0)
+    btc_price = prices.get("BTC", {}).get("price", 0)
+    sol_btc = sol_price / btc_price if btc_price else 0
+    sol_btc_str = f"{sol_btc:.6f}" if sol_btc else "N/A"
 
     return f'''<div class="panel-section">
-  <div class="stats-row">
-    <div class="stat"><div class="stat-label">Total Market Cap</div>
-      <div class="stat-value">{fmt_usd(global_data.get("total_market_cap",0))}</div>
-      <div>{fmt_change(global_data.get("market_cap_change_24h"))} 24h</div>
-      <div>{fmt_wow(wow, "total_market_cap")}</div>
+  <div class="market-top">
+    <div class="market-stats-col">
+      <div class="stats-row">
+        <div class="stat"><div class="stat-label">Total Market Cap</div>
+          <div class="stat-value">{fmt_usd(global_data.get("total_market_cap",0))}</div>
+          <div>{fmt_change(global_data.get("market_cap_change_24h"))} 24h</div>
+          <div>{fmt_wow(wow, "total_market_cap")}</div>
+        </div>
+        <div class="stat"><div class="stat-label">BTC Dominance</div>
+          <div class="stat-value">{global_data.get("btc_dominance",0)}%</div>
+        </div>
+        <div class="stat"><div class="stat-label">SOL Dominance</div>
+          <div class="stat-value">{global_data.get("sol_dominance",0)}%</div>
+          <div>{fmt_wow(wow, "sol_dominance")}</div>
+        </div>
+        <div class="stat"><div class="stat-label">SOL/BTC</div>
+          <div class="stat-value">{sol_btc_str}</div>
+        </div>
+      </div>
     </div>
-    <div class="stat"><div class="stat-label">BTC Dominance</div>
-      <div class="stat-value">{global_data.get("btc_dominance",0)}%</div>
-    </div>
-    <div class="stat"><div class="stat-label">SOL Dominance</div>
-      <div class="stat-value">{global_data.get("sol_dominance",0)}%</div>
-      <div>{fmt_wow(wow, "sol_dominance")}</div>
+    <div class="fg-hero">
+      <div class="fg-gauge">{gauge}</div>
+      <div class="fg-info">
+        <div class="fg-label-text">{esc(str(fg_label))}</div>
+        <div class="fg-yesterday">Yesterday: <strong>{fg_yesterday}</strong></div>
+      </div>
     </div>
   </div>
   <div class="grid grid-prices">{price_cards}</div>
-  <div class="fg-section">
-    <div class="fg-gauge">{gauge}</div>
-    <div class="fg-info">
-      <div class="fg-label-text">{esc(str(fg_label))}</div>
-      <div class="muted">Yesterday: {fg.get("yesterday","N/A")}</div>
-    </div>
-  </div>
 </div>'''
 
 
@@ -263,7 +306,8 @@ def build_technical_panel(technicals, monthly_returns):
 def build_news_panel(news):
     all_news = news.get("solana_news", []) + news.get("general_news", [])
     rss = news.get("rss_feeds", [])
-    total = news.get("total_stories", len(all_news) + len(rss))
+    youtube = news.get("youtube_videos", [])
+    total = news.get("total_stories", len(all_news) + len(rss) + len(youtube))
     items_html = ""
     for s in all_news[:12]:
         cats = ", ".join(s.get("categories", ["General"]))
@@ -277,9 +321,27 @@ def build_news_panel(news):
   <a href="{esc(s.get("url","#"))}" target="_blank" rel="noopener">{esc(s["title"])}</a>
   <span class="news-source">{esc(s.get("source",""))}</span>
 </div>'''
+
+    # YouTube videos
+    yt_html = ""
+    if youtube:
+        yt_items = ""
+        for v in youtube[:8]:
+            vid = v.get("video_id", "")
+            thumb = f'<img src="https://i.ytimg.com/vi/{vid}/mqdefault.jpg" style="width:120px;height:68px;border-radius:4px;object-fit:cover;flex-shrink:0" alt="">' if vid else ""
+            yt_items += f'''<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+  {thumb}
+  <div>
+    <a href="{esc(v.get("url","#"))}" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;font-size:0.84rem;line-height:1.3;display:block">{esc(v["title"])}</a>
+    <span class="muted" style="font-size:0.7rem">{esc(v.get("channel",""))}</span>
+  </div>
+</div>'''
+        yt_html = f'<h4 style="margin-top:20px">&#9654; Top Crypto YouTube</h4>{yt_items}'
+
     return f'''<div class="panel-section">
   <div class="section-badge">{total} stories</div>
   {items_html}
+  {yt_html}
 </div>'''
 
 
@@ -655,6 +717,127 @@ def build_upgrades_panel(upgrades):
 </div>'''
 
 
+def build_defi_yields_panel(solana):
+    """DeFi yields panel — top Solana lending/LP APYs."""
+    yields = solana.get("defi_yields", {})
+    if not yields:
+        return '<div class="panel-section"><p class="muted">DeFi yield data collecting...</p></div>'
+
+    summary = yields.get("summary", {})
+    top_yields = yields.get("top_yields", [])
+    stable_yields = yields.get("top_stablecoin_yields", [])
+
+    # Summary stats
+    summary_html = f'''<div class="stats-row">
+  <div class="stat"><div class="stat-label">Total Solana DeFi TVL</div><div class="stat-value">{fmt_usd(summary.get("total_tvl", 0))}</div></div>
+  <div class="stat"><div class="stat-label">Avg APY</div><div class="stat-value">{summary.get("avg_apy", 0):.1f}%</div></div>
+  <div class="stat"><div class="stat-label">Best Stable APY</div><div class="stat-value" style="color:var(--green)">{summary.get("best_stable_apy", 0):.1f}%</div></div>
+  <div class="stat"><div class="stat-label">Pools Tracked</div><div class="stat-value">{summary.get("total_pools", 0)}</div></div>
+</div>'''
+
+    # Top pools table
+    pool_rows = ""
+    for p in top_yields[:15]:
+        apy = p.get("apy", 0) or 0
+        apy_base = p.get("apyBase", 0) or 0
+        apy_reward = p.get("apyReward", 0) or 0
+        is_stable = "&#9679;" if p.get("stablecoin") else ""
+        apy_color = "var(--green)" if apy > 5 else "var(--text)"
+        pool_rows += f'''<tr>
+  <td>{esc(p.get("project",""))}</td>
+  <td>{esc(p.get("symbol",""))} {is_stable}</td>
+  <td style="color:{apy_color};font-weight:600">{apy:.1f}%</td>
+  <td class="muted">{apy_base:.1f}%</td>
+  <td class="muted">{apy_reward:.1f}%</td>
+  <td>{fmt_usd(p.get("tvlUsd", 0))}</td>
+</tr>'''
+
+    # Top stablecoin yields
+    stable_rows = ""
+    for p in stable_yields[:8]:
+        apy = p.get("apy", 0) or 0
+        stable_rows += f'''<tr>
+  <td>{esc(p.get("project",""))}</td>
+  <td>{esc(p.get("symbol",""))}</td>
+  <td style="color:var(--green);font-weight:600">{apy:.1f}%</td>
+  <td>{fmt_usd(p.get("tvlUsd", 0))}</td>
+</tr>'''
+
+    return f'''<div class="panel-section">
+  {summary_html}
+  <div class="grid grid-2" style="margin-top:16px">
+    <div>
+      <h4>Top Pools by TVL</h4>
+      <table><tr><th>Protocol</th><th>Pool</th><th>APY</th><th>Base</th><th>Reward</th><th>TVL</th></tr>{pool_rows}</table>
+    </div>
+    <div>
+      <h4>Top Stablecoin Yields</h4>
+      <table><tr><th>Protocol</th><th>Pool</th><th>APY</th><th>TVL</th></tr>{stable_rows}</table>
+    </div>
+  </div>
+</div>'''
+
+
+def build_tx_economics_panel(solana):
+    """Transaction economics panel — fees, priority fees."""
+    tx_econ = solana.get("tx_economics", {})
+    if not tx_econ:
+        return '<div class="panel-section"><p class="muted">Transaction economics data collecting...</p></div>'
+
+    pf = tx_econ.get("priority_fees", {})
+    base_sol = tx_econ.get("base_fee_sol", 0.000005)
+
+    return f'''<div class="panel-section">
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Base Fee</div><div class="stat-value">{base_sol} SOL</div><div class="muted">5,000 lamports</div></div>
+    <div class="stat"><div class="stat-label">Priority Fee (Median)</div><div class="stat-value">{pf.get("median", 0):,.0f}</div><div class="muted">micro-lamports</div></div>
+    <div class="stat"><div class="stat-label">Priority Fee (P75)</div><div class="stat-value">{pf.get("p75", 0):,.0f}</div><div class="muted">micro-lamports</div></div>
+    <div class="stat"><div class="stat-label">Priority Fee (P90)</div><div class="stat-value">{pf.get("p90", 0):,.0f}</div><div class="muted">micro-lamports</div></div>
+  </div>
+  <div class="muted" style="margin-top:8px">{pf.get("sample_count", 0)} recent slots sampled</div>
+</div>'''
+
+
+def build_competitive_panel(chain_tvls):
+    """Competitive positioning — Solana market share vs other chains."""
+    if not chain_tvls:
+        return '<div class="panel-section"><p class="muted">No chain data available.</p></div>'
+
+    total_tvl = sum(c.get("tvl", 0) for c in chain_tvls)
+    if total_tvl == 0:
+        return '<div class="panel-section"><p class="muted">No TVL data.</p></div>'
+
+    rows = ""
+    sol_share = 0
+    for c in chain_tvls[:10]:
+        tvl = c.get("tvl", 0)
+        share = (tvl / total_tvl * 100) if total_tvl else 0
+        bar_w = max(1, share)
+        name = esc(c.get("name", ""))
+        is_sol = name == "Solana"
+        if is_sol:
+            sol_share = share
+        color = "var(--accent)" if is_sol else "var(--muted)"
+        weight = "700" if is_sol else "400"
+        rows += f'''<div style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+    <span style="font-weight:{weight};color:{'var(--accent)' if is_sol else 'var(--text)'}">{name}</span>
+    <span><strong>{share:.1f}%</strong> <span class="muted">{fmt_usd(tvl)}</span></span>
+  </div>
+  <div style="background:var(--surface2);height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="background:{color};height:100%;width:{bar_w}%;border-radius:3px"></div>
+  </div>
+</div>'''
+
+    return f'''<div class="panel-section">
+  <div class="stats-row" style="margin-bottom:16px">
+    <div class="stat"><div class="stat-label">Total Top-10 TVL</div><div class="stat-value">{fmt_usd(total_tvl)}</div></div>
+    <div class="stat"><div class="stat-label">Solana Market Share</div><div class="stat-value" style="color:var(--accent)">{sol_share:.1f}%</div></div>
+  </div>
+  {rows}
+</div>'''
+
+
 def build_signal_panel(signal):
     context = signal.get("market_context", "No analysis generated.")
     divergences = signal.get("divergence_alerts", [])
@@ -752,7 +935,9 @@ h4 { font-size: 0.9rem; margin-bottom: 8px; color: var(--muted); text-transform:
 .header-left h1 { font-size: 1.6rem; letter-spacing: 2px; }
 .header-left h1 a { color: inherit; text-decoration: none; }
 .header-left .meta { color: var(--muted); font-size: 0.8rem; }
-.header-right { display: flex; align-items: center; gap: 12px; }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.header-link { color: var(--muted); font-size: 0.8rem; font-weight: 600; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; }
+.header-link:hover { color: var(--accent); }
 .fg-mini { text-align: center; }
 .fg-mini .fg-label-text { font-size: 0.75rem; color: var(--muted); }
 
@@ -780,11 +965,17 @@ h4 { font-size: 0.9rem; margin-bottom: 8px; color: var(--muted); text-transform:
 }
 .nl-banner .nl-text { font-size: 0.82rem; color: var(--muted); }
 .nl-banner .nl-text strong { color: var(--text); }
-.nl-banner a {
-  background: var(--accent); color: #fff; padding: 6px 18px; border-radius: 5px;
-  font-size: 0.8rem; font-weight: 600; text-decoration: none; white-space: nowrap;
+.nl-form { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.nl-input {
+  padding: 6px 12px; border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); font-size: 0.78rem; border-radius: 5px; outline: none; width: 180px;
 }
-.nl-banner a:hover { opacity: 0.9; }
+.nl-input:focus { border-color: var(--accent); }
+.nl-btn {
+  background: var(--accent); color: #fff; padding: 6px 18px; border-radius: 5px;
+  font-size: 0.8rem; font-weight: 600; border: none; cursor: pointer; white-space: nowrap;
+}
+.nl-btn:hover { opacity: 0.9; }
 
 /* Sections */
 .dash-section {
@@ -820,7 +1011,7 @@ h4 { font-size: 0.9rem; margin-bottom: 8px; color: var(--muted); text-transform:
 .stat-label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
 .stat-value { font-size: 1.25rem; font-weight: 700; }
 .muted { color: var(--muted); font-size: 0.8rem; }
-.wow { color: var(--muted); font-size: 0.75rem; font-style: italic; }
+.wow { font-size: 0.78rem; font-weight: 600; }
 
 /* Grid */
 .grid { display: grid; gap: 12px; }
@@ -828,22 +1019,42 @@ h4 { font-size: 0.9rem; margin-bottom: 8px; color: var(--muted); text-transform:
 .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
 .grid-prices { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
 
+/* Market top layout */
+.market-top {
+  display: flex; gap: 24px; align-items: flex-start; margin-bottom: 20px;
+}
+.market-stats-col { flex: 1; }
+.fg-hero {
+  flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 24px; min-width: 160px;
+}
+.fg-hero .fg-label-text { font-weight: 700; font-size: 1rem; margin-top: 4px; }
+.fg-hero .fg-yesterday { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+.fg-label-text { font-weight: 600; }
+
 /* Cards */
 .card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 8px; padding: 14px;
 }
+.price-card .price-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.price-card .sparkline-wrap { flex-shrink: 0; margin-left: 8px; opacity: 0.85; }
 .price-card .price-name { font-size: 0.8rem; font-weight: 600; }
 .price-card .price-name .muted { font-weight: 400; font-size: 0.7rem; }
 .price-card .price-val { font-size: 1.2rem; font-weight: 700; margin: 2px 0; }
+.price-card .price-7d { margin-top: 4px; font-size: 0.78rem; }
 
-/* F&G */
-.fg-section {
-  display: flex; align-items: center; gap: 16px;
-  margin-top: 16px; padding: 12px; background: var(--surface);
-  border-radius: 8px; border: 1px solid var(--border); width: fit-content;
+/* Back to top */
+.back-top {
+  position: fixed; bottom: 24px; right: 24px; z-index: 200;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none; cursor: pointer;
+  font-size: 1.1rem; display: none; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: opacity 0.2s;
 }
-.fg-label-text { font-weight: 600; }
+.back-top:hover { opacity: 0.85; }
+.back-top.visible { display: flex; }
 
 /* Tables */
 table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
@@ -918,6 +1129,9 @@ footer a:hover { text-decoration: underline; }
   .header { flex-direction: column; gap: 8px; align-items: flex-start; }
   .section-nav a { padding: 10px 14px; font-size: 0.75rem; }
   .tech-row { flex-direction: column; }
+  .market-top { flex-direction: column; }
+  .fg-hero { width: 100%; flex-direction: row; gap: 16px; justify-content: center; }
+  .back-top { bottom: 16px; right: 16px; }
 }
 """
 
@@ -926,6 +1140,40 @@ footer a:hover { text-decoration: underline; }
 # ---------------------------------------------------------------------------
 
 JS = """
+// Kit newsletter subscribe
+function dashSubscribe(e) {
+  e.preventDefault();
+  var email = document.getElementById('dash-nl-email').value;
+  var msg = document.getElementById('dash-nl-msg');
+  var btn = document.querySelector('.nl-btn');
+  btn.disabled = true; btn.textContent = '...';
+  fetch('https://api.convertkit.com/v3/forms/9240695/subscribe', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({api_key: 'kit_41894af17b9605e1a812af6e6156f2ed', email: email})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    msg.style.display = 'inline';
+    if (data.subscription) {
+      msg.style.color = 'var(--green)';
+      msg.textContent = "You're in!";
+      document.getElementById('dash-nl-email').value = '';
+    } else {
+      msg.style.color = '#f97316';
+      msg.textContent = data.message || 'Try again.';
+    }
+    btn.disabled = false; btn.textContent = 'Subscribe';
+  })
+  .catch(function() {
+    msg.style.display = 'inline';
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Error. Try again.';
+    btn.disabled = false; btn.textContent = 'Subscribe';
+  });
+  return false;
+}
+
 // Scroll-spy: highlight active section in nav
 (function() {
   var links = document.querySelectorAll('.section-nav a');
@@ -935,6 +1183,7 @@ JS = """
     var el = document.getElementById(id);
     if (el) sections.push({el: el, link: links[i]});
   }
+  var backTop = document.getElementById('back-top');
   function onScroll() {
     var scrollY = window.scrollY + 80;
     var active = sections[0];
@@ -944,6 +1193,7 @@ JS = """
     for (var i = 0; i < sections.length; i++) {
       sections[i].link.classList.toggle('active', sections[i] === active);
     }
+    if (backTop) backTop.classList.toggle('visible', window.scrollY > 600);
   }
   window.addEventListener('scroll', onScroll, {passive: true});
   onScroll();
@@ -1175,6 +1425,7 @@ def build_homepage(compiled: dict, narrative: dict) -> str:
     dex_combined = dex.get("combined_24h", 0)
     tvl_current = sol_tvl.get("current", 0)
     tvl_chg = sol_tvl.get("change_1d")
+    sol_btc = sol_price / btc_price if btc_price else 0
 
     fg_color = "#ef4444" if isinstance(fg_val, (int, float)) and fg_val <= 25 else "#f97316" if isinstance(fg_val, (int, float)) and fg_val <= 45 else "#eab308" if isinstance(fg_val, (int, float)) and fg_val <= 55 else "#22c55e"
 
@@ -1289,6 +1540,11 @@ def build_homepage(compiled: dict, narrative: dict) -> str:
     <div class="t-value">{fmt_usd(tvl_current)}</div>
     <div class="t-change">{fmt_change(tvl_chg)}</div>
   </div>
+  <div class="ticker">
+    <div class="t-label">SOL/BTC</div>
+    <div class="t-value">{f"{sol_btc:.6f}" if sol_btc else "N/A"}</div>
+    <div class="t-change">&nbsp;</div>
+  </div>
 </div>
 
 <!-- LEAD STORY -->
@@ -1340,14 +1596,38 @@ function handleSubscribe(e) {{
   e.preventDefault();
   var email = document.getElementById('newsletter-email').value;
   var msg = document.getElementById('newsletter-msg');
-  // TODO: Connect to Kit (ConvertKit) API
-  var subs = JSON.parse(localStorage.getItem('sw_subscribers') || '[]');
-  if (subs.indexOf(email) === -1) subs.push(email);
-  localStorage.setItem('sw_subscribers', JSON.stringify(subs));
-  msg.style.display = 'block';
-  msg.style.color = '#22c55e';
-  msg.textContent = 'You\\'re in! Newsletter coming soon.';
-  document.getElementById('newsletter-email').value = '';
+  var btn = document.querySelector('.hp-email-btn');
+  btn.disabled = true;
+  btn.textContent = 'Subscribing...';
+  fetch('https://api.convertkit.com/v3/forms/9240695/subscribe', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{
+      api_key: 'kit_41894af17b9605e1a812af6e6156f2ed',
+      email: email
+    }})
+  }})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(data) {{
+    msg.style.display = 'block';
+    if (data.subscription) {{
+      msg.style.color = '#22c55e';
+      msg.textContent = 'You\\'re in! Daily Solana intelligence, every morning.';
+      document.getElementById('newsletter-email').value = '';
+    }} else {{
+      msg.style.color = '#f97316';
+      msg.textContent = data.message || 'Something went wrong. Try again.';
+    }}
+    btn.disabled = false;
+    btn.textContent = 'Subscribe';
+  }})
+  .catch(function() {{
+    msg.style.display = 'block';
+    msg.style.color = '#ef4444';
+    msg.textContent = 'Network error. Please try again.';
+    btn.disabled = false;
+    btn.textContent = 'Subscribe';
+  }});
   return false;
 }}
 </script>
@@ -1406,6 +1686,7 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     <div class="meta">Updated: {esc(generated_at)}{f" &middot; Run #{run_num}" if run_num else ""}</div>
   </div>
   <div class="header-right">
+    <a href="https://solanaweekly.fun" target="_blank" rel="noopener" class="header-link">Podcast</a>
     <div class="fg-mini">
       {gauge_mini}
       <div class="fg-label-text">{esc(str(fg_label))}</div>
@@ -1420,17 +1701,23 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
   <a href="#solana">Solana</a>
   <a href="#dex">DEX</a>
   <a href="#protocols">Protocols</a>
+  <a href="#yields">Yields</a>
   <a href="#upgrades">Upgrades</a>
+  <a href="#tx-econ">Fees</a>
   <a href="#signal">Signal</a>
   <a href="#intelligence">Intel</a>
-  <a href="#ecosystem">Ecosystem</a>
+  <a href="#competitive">Share</a>
   <a href="#news">News</a>
 </nav>
 
 <!-- NEWSLETTER BANNER -->
 <div class="nl-banner">
   <div class="nl-text"><strong>Get daily Solana intelligence in your inbox.</strong> Key numbers + what they mean, every morning.</div>
-  <a href="/#newsletter">Subscribe Free</a>
+  <form class="nl-form" id="dash-nl-form" onsubmit="return dashSubscribe(event)">
+    <input type="email" class="nl-input" placeholder="your@email.com" required id="dash-nl-email">
+    <button type="submit" class="nl-btn">Subscribe</button>
+  </form>
+  <div id="dash-nl-msg" style="font-size:0.78rem;display:none"></div>
 </div>
 
 <!-- ====== MARKET ====== -->
@@ -1463,10 +1750,22 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
   {build_protocols_panel(protocols)}
 </div>
 
+<!-- ====== DEFI YIELDS ====== -->
+<div class="dash-section" id="yields">
+  <div class="section-title">DeFi Yields</div>
+  {build_defi_yields_panel(solana)}
+</div>
+
 <!-- ====== NETWORK UPGRADES ====== -->
 <div class="dash-section" id="upgrades">
   <div class="section-title">Network Upgrades</div>
   {build_upgrades_panel(upgrades)}
+</div>
+
+<!-- ====== TX ECONOMICS ====== -->
+<div class="dash-section" id="tx-econ">
+  <div class="section-title">Transaction Economics</div>
+  {build_tx_economics_panel(solana)}
 </div>
 
 <!-- ====== THE SIGNAL ====== -->
@@ -1494,10 +1793,14 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
   </div>
 </div>
 
-<!-- ====== ECOSYSTEM ====== -->
-<div class="dash-section" id="ecosystem">
-  <div class="section-title">Cross-Chain Ecosystem</div>
-  {build_ecosystem_panel(chain_tvls, trending)}
+<!-- ====== COMPETITIVE ====== -->
+<div class="dash-section" id="competitive">
+  <div class="section-title">Chain Market Share</div>
+  {build_competitive_panel(chain_tvls)}
+  <div style="margin-top:20px">
+    <h4>Trending on CoinGecko</h4>
+    <div class="trending-row">{''.join(f'<span class="trending-tag">#{t.get("market_cap_rank","?")} <strong>{esc(t.get("symbol","?"))}</strong></span>' for t in trending[:10])}</div>
+  </div>
 </div>
 
 <!-- ====== NEWS ====== -->
@@ -1509,6 +1812,8 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
 <footer>
   <a href="/">solanaweekly.io</a> &middot; Daily Solana Intelligence &middot; {esc(generated_at)}
 </footer>
+
+<button class="back-top" id="back-top" onclick="window.scrollTo({{top:0,behavior:'smooth'}})" title="Back to top">&#9650;</button>
 
 <script>{JS}</script>
 </body>

@@ -64,6 +64,11 @@ def main():
     # Step 2: Compile
     run_step("Compile Data", "compile_data")
 
+    # Step 2.5: Verify data quality
+    verification = run_step("Verify Data Quality", "verify_data")
+    if verification.get("status") == "FAIL":
+        log.warning("Data quality check FAILED — continuing but dashboard may have issues")
+
     if args.data_only:
         log.info("Data-only mode — stopping here.")
         return
@@ -76,6 +81,9 @@ def main():
 
     # Step 4: Generate dashboard
     run_step("Generate Dashboard", "generate_dashboard")
+
+    # Step 5: Generate newsletter draft
+    run_step("Generate Newsletter", "generate_newsletter")
 
     total_elapsed = time.time() - total_start
     log.info("")

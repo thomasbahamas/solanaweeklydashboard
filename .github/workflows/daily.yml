@@ -6,6 +6,9 @@ on:
     - cron: '0 13 * * *'
   workflow_dispatch: # Manual trigger
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: write
   pages: write
@@ -14,7 +17,7 @@ permissions:
 jobs:
   build-dashboard:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout

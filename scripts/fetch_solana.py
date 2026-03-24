@@ -1,5 +1,7 @@
 """Fetch Solana ecosystem data: TVL, DEX volumes, protocol rankings, network stats."""
 
+import statistics
+
 from config import (
     api_get, rpc_post, save_json, get_logger, now_utc,
     TOP_CHAINS,
@@ -222,6 +224,100 @@ def fetch_stablecoin_data() -> dict:
     }
 
 
+def fetch_defi_yields() -> dict:
+    """DeFiLlama top Solana DeFi yields by TVL."""
+    data = api_get("https://yields.llama.fi/pools")
+    if not data or "data" not in data:
+        return {"top_yields": [], "top_stablecoin_yields": [], "summary": {}}
+
+    pools = data["data"]
+
+    # Filter for Solana pools with >= $1M TVL
+    solana_pools = []
+    for p in pools:
+        if p.get("chain") != "Solana":
+            continue
+        tvl = p.get("tvlUsd") or 0
+        if tvl < 1_000_000:
+            continue
+        solana_pools.append({
+            "pool": p.get("pool"),
+            "project": p.get("project"),
+            "symbol": p.get("symbol"),
+            "tvlUsd": tvl,
+            "apy": p.get("apy") or 0,
+            "apyBase": p.get("apyBase") or 0,
+            "apyReward": p.get("apyReward") or 0,
+            "stablecoin": bool(p.get("stablecoin")),
+        })
+
+    # Sort by TVL descending
+    solana_pools.sort(key=lambda x: x["tvlUsd"], reverse=True)
+
+    top_yields = solana_pools[:20]
+
+    # Top stablecoin pools by APY
+    stable_pools = [p for p in solana_pools if p["stablecoin"]]
+    stable_pools.sort(key=lambda x: x["apy"], reverse=True)
+    top_stablecoin_yields = stable_pools[:10]
+
+    total_tvl = sum(p["tvlUsd"] for p in solana_pools)
+    apys = [p["apy"] for p in solana_pools]
+    avg_apy = round(sum(apys) / len(apys), 2) if apys else 0
+    best_stable_apy = top_stablecoin_yields[0]["apy"] if top_stablecoin_yields else 0
+
+    return {
+        "top_yields": top_yields,
+        "top_stablecoin_yields": top_stablecoin_yields,
+        "summary": {
+            "total_pools": len(solana_pools),
+            "total_tvl": total_tvl,
+            "avg_apy": avg_apy,
+            "best_stable_apy": best_stable_apy,
+        },
+    }
+
+
+def fetch_tx_economics() -> dict:
+    """Solana transaction fee economics from RPC priority fee data."""
+    samples = rpc_post("getRecentPrioritizationFees")
+    if not samples or not isinstance(samples, list):
+        return {
+            "base_fee_lamports": 5000,
+            "base_fee_sol": 0.000005,
+            "priority_fees": {
+                "median": 0,
+                "p75": 0,
+                "p90": 0,
+                "min": 0,
+                "max": 0,
+                "sample_count": 0,
+            },
+        }
+
+    fees = [s.get("prioritizationFee", 0) for s in samples]
+    fees.sort()
+
+    median_value = int(statistics.median(fees))
+    p75_value = int(statistics.quantiles(fees, n=100)[74]) if len(fees) >= 2 else fees[-1]
+    p90_value = int(statistics.quantiles(fees, n=100)[89]) if len(fees) >= 2 else fees[-1]
+    min_value = fees[0]
+    max_value = fees[-1]
+
+    return {
+        "base_fee_lamports": 5000,
+        "base_fee_sol": 0.000005,
+        "priority_fees": {
+            "median": median_value,
+            "p75": p75_value,
+            "p90": p90_value,
+            "min": min_value,
+            "max": max_value,
+            "sample_count": len(samples),
+        },
+    }
+
+
 def run() -> dict:
     log.info("Fetching Solana ecosystem data...")
 
@@ -246,6 +342,12 @@ def run() -> dict:
     stablecoins = fetch_stablecoin_data()
     log.info(f"  Stablecoins: ${stablecoins['total']/1e9:.2f}B")
 
+    defi_yields = fetch_defi_yields()
+    log.info(f"  DeFi Yields: {defi_yields.get('summary', {}).get('total_pools', 0)} pools")
+
+    tx_economics = fetch_tx_economics()
+    log.info(f"  Tx Economics: {tx_economics['priority_fees']['sample_count']} fee samples")
+
     result = {
         "timestamp": now_utc(),
         "chain_tvls": chain_tvls,
@@ -255,6 +357,8 @@ def run() -> dict:
         "fees": fees,
         "network": network,
         "stablecoins": stablecoins,
+        "defi_yields": defi_yields,
+        "tx_economics": tx_economics,
     }
 
     save_json(result, "solana.json")

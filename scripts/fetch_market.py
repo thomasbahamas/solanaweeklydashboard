@@ -17,9 +17,10 @@ PAPRIKA_IDS = {
     "bitcoin": "btc-bitcoin",
     "ethereum": "eth-ethereum",
     "solana": "sol-solana",
+    "jito-governance-token": "jto-jito",
+    "bonk": "bonk-bonk",
     "hyperliquid": "hype-hyperliquid",
     "zcash": "zec-zcash",
-    "near": "near-near-protocol",
 }
 
 
@@ -48,7 +49,7 @@ def _fetch_prices_coingecko() -> dict | None:
             "vs_currency": "usd",
             "ids": ids,
             "order": "market_cap_desc",
-            "sparkline": "false",
+            "sparkline": "true",
             "price_change_percentage": "24h,7d",
         },
     )
@@ -57,6 +58,9 @@ def _fetch_prices_coingecko() -> dict | None:
     prices = {}
     for coin in data:
         ticker = WATCHLIST.get(coin["id"], coin["symbol"].upper())
+        sparkline_raw = coin.get("sparkline_in_7d", {}).get("price", [])
+        # Downsample to ~28 points (every 6th point from 168 hourly)
+        sparkline = sparkline_raw[::6] if len(sparkline_raw) > 28 else sparkline_raw
         prices[ticker] = {
             "name": coin["name"],
             "price": coin["current_price"],
@@ -67,6 +71,7 @@ def _fetch_prices_coingecko() -> dict | None:
             "low_24h": coin.get("low_24h"),
             "ath": coin.get("ath"),
             "atl": coin.get("atl"),
+            "sparkline_7d": sparkline,
         }
     return prices
 

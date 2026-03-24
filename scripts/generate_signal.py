@@ -197,6 +197,16 @@ def build_data_prompt(compiled: dict) -> str:
         for p in staking_flows.get("protocols", [])[:5]:
             sections.append(f"  {p['name']}: ${p['tvl']/1e6:.0f}M ({p['change_1d']:+.1f}% 1d)")
 
+    # DeFi yields
+    defi_yields = solana.get("defi_yields", {})
+    if defi_yields:
+        sections.append("")
+        sections.append("=== DEFI YIELDS (Solana) ===")
+        summary = defi_yields.get("summary", {})
+        sections.append(f"Total DeFi TVL: ${summary.get('total_tvl', 0)/1e9:.2f}B | Avg APY: {summary.get('avg_apy', 0):.1f}% | Best Stable: {summary.get('best_stable_apy', 0):.1f}%")
+        for p in defi_yields.get("top_yields", [])[:10]:
+            sections.append(f"  {p.get('project', '')}: {p.get('symbol', '')} — {p.get('apy', 0):.1f}% APY (TVL: ${p.get('tvlUsd', 0)/1e6:.0f}M)")
+
     # Trending
     sections.append("")
     sections.append("=== TRENDING (CoinGecko) ===")
@@ -249,7 +259,7 @@ Return ONLY valid JSON matching the schema described in your instructions. No ma
     log.info("Calling Claude API for narrative generation...")
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-6",
             max_tokens=8192,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_message}],

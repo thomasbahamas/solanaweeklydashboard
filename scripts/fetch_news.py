@@ -123,6 +123,48 @@ def fetch_rss_feeds() -> list:
     return deduped[:20]
 
 
+# YouTube channels to track (channel_id -> display name)
+YOUTUBE_CHANNELS = {
+    "UCXq4wViP47PV1T3GxOEBpUw": "Solana Foundation",
+    "UCqK_GSMbpiV8spgD3ZGloSw": "Coin Bureau",
+    "UCAl9Ld79qaZxp7JnEufyLRg": "Bankless",
+    "UCJgHxpqfcOB0dGkEMzWlZbA": "Altcoin Daily",
+    "UCRvqjQPSeaWn-uEx-w0XOIg": "CoinDesk",
+    "UC4FVvg_HfyflVKTMZMjoYeg": "Paul Barron Network",
+}
+
+
+def fetch_youtube_videos() -> list:
+    """Fetch latest videos from top crypto/Solana YouTube channels via RSS."""
+    all_videos = []
+    for channel_id, name in YOUTUBE_CHANNELS.items():
+        try:
+            url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+            feed = feedparser.parse(url)
+            for entry in feed.entries[:3]:
+                title = entry.get("title", "")
+                # Filter for Solana-relevant content
+                title_lower = title.lower()
+                sol_relevant = any(kw in title_lower for kw in [
+                    "solana", "sol", "jito", "jupiter", "raydium", "phantom",
+                    "crypto", "defi", "market", "altcoin", "bull", "bear",
+                    "bitcoin", "ethereum", "token", "blockchain", "web3",
+                ])
+                if sol_relevant:
+                    all_videos.append({
+                        "title": title,
+                        "channel": name,
+                        "url": entry.get("link", ""),
+                        "published": entry.get("published", ""),
+                        "video_id": entry.get("yt_videoid", ""),
+                    })
+        except Exception as e:
+            log.warning(f"YouTube RSS {name} failed: {e}")
+
+    all_videos.sort(key=lambda x: x.get("published", ""), reverse=True)
+    return all_videos[:12]
+
+
 def categorize_stories(stories: list) -> list:
     """Add category tags based on keywords in titles."""
     categories = {
@@ -161,6 +203,9 @@ def run() -> dict:
     rss_news = fetch_rss_feeds()
     log.info(f"  RSS feeds: {len(rss_news)} stories")
 
+    youtube = fetch_youtube_videos()
+    log.info(f"  YouTube: {len(youtube)} videos")
+
     # Merge and categorize
     all_stories = categorize_stories(solana_news + general_news)
     rss_categorized = categorize_stories(rss_news)
@@ -170,7 +215,8 @@ def run() -> dict:
         "solana_news": solana_news,
         "general_news": general_news,
         "rss_feeds": rss_categorized,
-        "total_stories": len(solana_news) + len(general_news) + len(rss_news),
+        "youtube_videos": youtube,
+        "total_stories": len(solana_news) + len(general_news) + len(rss_news) + len(youtube),
     }
 
     save_json(result, "news.json")
