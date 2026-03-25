@@ -1551,8 +1551,10 @@ def build_homepage(compiled: dict, narrative: dict) -> str:
     else:
         signal_body = '<p style="color:var(--muted);font-style:italic">Signal analysis generates daily at 6am PT. Check back soon.</p>'
 
-    # Top news
+    # Top news — CryptoPanic first, fall back to RSS
     all_news = news.get("solana_news", []) + news.get("general_news", [])
+    if not all_news:
+        all_news = news.get("rss_feeds", [])
     news_html = ""
     for s in all_news[:6]:
         news_html += f'''<div class="hp-news-item">

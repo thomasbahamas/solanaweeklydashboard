@@ -29,25 +29,36 @@ def create_broadcast(subject: str, html_body: str, text_body: str) -> dict | Non
         return None
 
     send_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    log.info(f"Creating Kit v4 broadcast (send_at={send_at})...")
-    resp = requests.post(
-        f"{KIT_V4_BASE}/broadcasts",
-        headers={
-            "Content-Type": "application/json",
-            "X-Kit-Api-Key": api_key,
-        },
-        json={
-            "subject": subject,
-            "content": html_body,
-            "description": f"Solana Weekly — {now_utc()[:10]}",
-            "public": True,
-            "send_at": send_at,
-        },
-        timeout=30,
-    )
+    payload = {
+        "subject": subject,
+        "content": html_body,
+        "description": f"Solana Weekly — {now_utc()[:10]}",
+        "public": True,
+        "send_at": send_at,
+    }
+
+    # Try X-Kit-Api-Key header first, then Bearer token
+    auth_methods = [
+        {"Content-Type": "application/json", "X-Kit-Api-Key": api_key},
+        {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+    ]
+
+    resp = None
+    for headers in auth_methods:
+        auth_type = "Bearer" if "Authorization" in headers else "X-Kit-Api-Key"
+        log.info(f"Creating Kit v4 broadcast ({auth_type}, send_at={send_at})...")
+        resp = requests.post(
+            f"{KIT_V4_BASE}/broadcasts",
+            headers=headers,
+            json=payload,
+            timeout=30,
+        )
+        if resp.status_code in (200, 201):
+            break
+        log.warning(f"  {auth_type} auth failed: {resp.status_code} — {resp.text[:200]}")
 
     if resp.status_code not in (200, 201):
-        log.error(f"Failed to create broadcast: {resp.status_code} — {resp.text[:300]}")
+        log.error(f"Failed to create broadcast with all auth methods")
         return None
 
     data = resp.json()

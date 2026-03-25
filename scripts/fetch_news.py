@@ -17,6 +17,8 @@ RSS_FEEDS = {
     "The Block": "https://www.theblock.co/rss.xml",
     "Blockworks": "https://blockworks.co/feed",
     "Decrypt": "https://decrypt.co/feed",
+    "CoinTelegraph": "https://cointelegraph.com/rss",
+    "DL News": "https://www.dlnews.com/arc/outboundfeeds/rss/",
     # DeFi / Solana ecosystem
     "Messari": "https://messari.io/rss",
 }
