@@ -45,6 +45,16 @@ MARKET MAKER ACTIVITY INSTRUCTIONS:
 TRENDING NARRATIVES INSTRUCTIONS:
 - trending_narratives: Identify 4-6 emerging narrative threads from the combined data and news. These should be data-driven observations, not attributed to any specific person or account.
 
+"SO WHAT'S THE TRADE?" INSTRUCTIONS:
+This is the most important section. Readers are traders — they need to know what the data means and where to look. Structure your answer top-down:
+- macro: What's the macro environment saying? (F&G, BTC dominance, rates, risk-on/risk-off)
+- crypto: Where is crypto as an asset class positioned? (BTC trend, altcoin rotation, capital flows)
+- solana: What's the Solana-specific setup? (TVL trend, DEX activity, fee revenue, staking flows)
+- sector: Which Solana sector is best positioned right now and why? (DeFi, Liquid Staking, DEX, Lending, DePIN, Gaming, RWA, etc.)
+- coins: Name 2-4 specific tokens in that sector that the data supports. Cite the data point (TVL growth, volume spike, yield, etc.)
+- conviction: Rate the overall setup as "Strong", "Moderate", or "Wait" with a one-line reason.
+Always lead with "NFA, but here's what the data is saying:" and be direct. This is for experienced traders, not beginners.
+
 BRIEFING SCRIPT INSTRUCTIONS:
 - Include a [SEGMENT 5: CT PULSE] section that covers trending narratives and notable takes
 - Keep the script readable in 3-4 minutes
@@ -68,6 +78,17 @@ OUTPUT FORMAT: Return valid JSON with these keys:
         "sentiment": "Extremely Bullish|Bullish|Cautiously Bullish|Neutral|Neutral/Legal|Bearish"
       }
     ]
+  },
+  "trade_thesis": {
+    "macro": "1-2 sentences on macro positioning",
+    "crypto": "1-2 sentences on crypto as asset class",
+    "solana": "1-2 sentences on Solana-specific setup",
+    "sector": "Which sector and why",
+    "coins": [
+      {"ticker": "JTO", "reason": "Data point supporting this pick"}
+    ],
+    "conviction": "Strong|Moderate|Wait",
+    "conviction_reason": "One line why"
   },
   "x_pulse": {
     "trending_narratives": [

@@ -1006,6 +1006,55 @@ def build_signal_panel(signal):
     return f'<div class="panel-section">{"".join(parts)}</div>'
 
 
+def build_trade_panel(trade):
+    """Build the 'So, what's the trade?' panel."""
+    if not trade or not trade.get("macro"):
+        return ""
+
+    conviction = trade.get("conviction", "Wait")
+    conv_color = {"Strong": "var(--green)", "Moderate": "#eab308", "Wait": "var(--red)"}.get(conviction, "var(--muted)")
+
+    # Top-down layers
+    layers = [
+        ("Macro", trade.get("macro", "")),
+        ("Crypto", trade.get("crypto", "")),
+        ("Solana", trade.get("solana", "")),
+        ("Sector", trade.get("sector", "")),
+    ]
+    layers_html = ""
+    for label, text in layers:
+        if text:
+            layers_html += f'''<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent);font-weight:600;margin-bottom:4px">{label}</div>
+  <div style="font-size:0.88rem">{esc(text)}</div>
+</div>'''
+
+    # Coin picks
+    coins = trade.get("coins", [])
+    coins_html = ""
+    if coins:
+        for c in coins:
+            coins_html += f'''<div style="display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border)">
+  <span style="font-weight:700;color:var(--accent);font-size:0.95rem;min-width:50px">{esc(c.get("ticker",""))}</span>
+  <span style="font-size:0.84rem">{esc(c.get("reason",""))}</span>
+</div>'''
+
+    conv_reason = trade.get("conviction_reason", "")
+
+    return f'''<div class="panel-section">
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:16px;font-style:italic">NFA. Data-driven analysis only — do your own research.</div>
+  {layers_html}
+  {f'<h4 style="margin-top:16px">Names to Watch</h4>{coins_html}' if coins_html else ''}
+  <div style="margin-top:16px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">Conviction</div>
+      <div style="font-size:1.3rem;font-weight:700;color:{conv_color}">{esc(conviction)}</div>
+    </div>
+    <div style="font-size:0.88rem;color:var(--muted);max-width:70%">{esc(conv_reason)}</div>
+  </div>
+</div>'''
+
+
 def build_pitches_panel(pitches):
     if not pitches:
         return ""
@@ -1961,6 +2010,11 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     <div class="trending-row">{trending_html}</div>
   </div>
 </div>'''))
+
+    trade_thesis = narrative.get("trade_thesis", {})
+    trade_html = _section_if(build_trade_panel(trade_thesis), "trade", "So, What's the Trade?")
+    if trade_html:
+        sections.append(("trade", "Trade", trade_html))
 
     sections.append(("news", "News", f'''<div class="dash-section" id="news">
   <div class="section-title">News Feed</div>
