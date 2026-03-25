@@ -42,10 +42,8 @@ MARKET MAKER ACTIVITY INSTRUCTIONS:
 - If no institutional news, generate signals based on market structure (e.g., "Market makers likely hedging amid low volatility")
 - Include Arkham-style analysis of positioning
 
-X PULSE INSTRUCTIONS:
-- protocol_updates: Synthesize 4-6 updates that major Solana protocols would be sharing based on the data (e.g., if Jupiter has high volume, they'd be tweeting about it). Use real protocol Twitter handles.
-- influencer_takes: Generate 4-6 takes from key crypto voices based on the news and market conditions. Use real influencer handles.
-- trending_narratives: Identify 4-6 emerging narrative threads from the combined data and news.
+TRENDING NARRATIVES INSTRUCTIONS:
+- trending_narratives: Identify 4-6 emerging narrative threads from the combined data and news. These should be data-driven observations, not attributed to any specific person or account.
 
 BRIEFING SCRIPT INSTRUCTIONS:
 - Include a [SEGMENT 5: CT PULSE] section that covers trending narratives and notable takes
@@ -72,12 +70,6 @@ OUTPUT FORMAT: Return valid JSON with these keys:
     ]
   },
   "x_pulse": {
-    "protocol_updates": [
-      {"account": "@solana or @JupiterExchange etc", "text": "What they announced/shared"}
-    ],
-    "influencer_takes": [
-      {"account": "@VitalikButerin or @WatcherGuru etc", "text": "Key take or quote"}
-    ],
     "trending_narratives": [
       {"title": "AI Agents on Solana", "detail": "Supporting context from news/data"}
     ]

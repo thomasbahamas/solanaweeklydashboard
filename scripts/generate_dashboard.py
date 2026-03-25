@@ -143,34 +143,57 @@ def svg_bar_chart_horiz(items, label_key, value_key, width=460, bar_h=22, fmt_fn
 
 
 def svg_monthly_returns(monthly_returns):
-    """Compact monthly return heatmap-style bar chart."""
+    """Monthly return bar chart with year labels and gridlines."""
     if not monthly_returns:
         return '<p class="muted">Collecting monthly return data...</p>'
     items = monthly_returns[-24:]  # last 24 months
-    w = 460
-    bar_w = 22
-    gap = 3
-    h = 80
-    mid_y = 50
+    month_names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    bar_w = 32
+    gap = 5
+    left_pad = 45
+    h = 160
+    mid_y = 90
     max_abs = max((abs(m.get("return_pct", 0)) for m in items), default=1) or 1
-    scale = 30 / max_abs
+    scale = 55 / max_abs
     bars = []
+    prev_year = ""
     for i, m in enumerate(items):
-        x = i * (bar_w + gap) + 30
+        x = i * (bar_w + gap) + left_pad
         ret = m.get("return_pct", 0)
         bh = abs(ret) * scale
         color = "#22c55e" if ret >= 0 else "#ef4444"
         y = mid_y - bh if ret >= 0 else mid_y
-        label = m.get("month", "")[-5:]  # "MM" or "YYYY-MM"
-        if len(label) > 3:
-            label = label[-2:]  # just month number
+        month_str = m.get("month", "")
+        year = month_str[:4] if len(month_str) >= 4 else ""
+        month_num = int(month_str[-2:]) if len(month_str) >= 2 and month_str[-2:].isdigit() else 0
+        label = month_names[month_num - 1] if 1 <= month_num <= 12 else "?"
+
+        # Year separator
+        if year != prev_year and prev_year:
+            bars.append(f'<line x1="{x - gap // 2}" y1="10" x2="{x - gap // 2}" y2="{h - 10}" stroke="#27272a" stroke-width="1" stroke-dasharray="3,3"/>')
+        # Year label on first month of year or first item
+        if year != prev_year:
+            bars.append(f'<text x="{x + bar_w // 2}" y="{h}" text-anchor="middle" fill="#9333ea" font-size="11" font-weight="600">{year}</text>')
+        prev_year = year
+
         bars.append(
-            f'<rect x="{x}" y="{y:.0f}" width="{bar_w}" height="{max(2, bh):.0f}" fill="{color}" rx="2" opacity="0.8"/>'
-            f'<text x="{x + bar_w // 2}" y="{mid_y + 16}" text-anchor="middle" fill="#71717a" font-size="9">{label}</text>'
-            f'<text x="{x + bar_w // 2}" y="{y - 3 if ret >= 0 else y + bh + 11:.0f}" text-anchor="middle" fill="{color}" font-size="8">{ret:+.0f}%</text>'
+            f'<rect x="{x}" y="{y:.0f}" width="{bar_w}" height="{max(3, bh):.0f}" fill="{color}" rx="3" opacity="0.85"/>'
+            f'<text x="{x + bar_w // 2}" y="{mid_y + 18}" text-anchor="middle" fill="#71717a" font-size="10">{label}</text>'
+            f'<text x="{x + bar_w // 2}" y="{y - 5 if ret >= 0 else y + bh + 13:.0f}" text-anchor="middle" fill="{color}" font-size="10" font-weight="600">{ret:+.1f}%</text>'
         )
-    total_w = len(items) * (bar_w + gap) + 60
-    return f'<svg width="100%" viewBox="0 0 {total_w} {h + 10}" xmlns="http://www.w3.org/2000/svg"><line x1="30" y1="{mid_y}" x2="{total_w - 10}" y2="{mid_y}" stroke="#1e1e2e" stroke-width="1"/>{"".join(bars)}</svg>'
+    total_w = len(items) * (bar_w + gap) + left_pad + 20
+
+    # Gridlines and axis labels
+    grid = f'<line x1="{left_pad - 5}" y1="{mid_y}" x2="{total_w - 10}" y2="{mid_y}" stroke="#27272a" stroke-width="1"/>'
+    grid += f'<text x="{left_pad - 8}" y="{mid_y + 4}" text-anchor="end" fill="#71717a" font-size="9">0%</text>'
+    # Top/bottom reference lines
+    top_val = int(max_abs)
+    grid += f'<line x1="{left_pad - 5}" y1="{mid_y - 55}" x2="{total_w - 10}" y2="{mid_y - 55}" stroke="#1e1e2e" stroke-width="1" stroke-dasharray="2,4"/>'
+    grid += f'<text x="{left_pad - 8}" y="{mid_y - 51}" text-anchor="end" fill="#71717a" font-size="9">+{top_val}%</text>'
+    grid += f'<line x1="{left_pad - 5}" y1="{mid_y + 55}" x2="{total_w - 10}" y2="{mid_y + 55}" stroke="#1e1e2e" stroke-width="1" stroke-dasharray="2,4"/>'
+    grid += f'<text x="{left_pad - 8}" y="{mid_y + 59}" text-anchor="end" fill="#71717a" font-size="9">-{top_val}%</text>'
+
+    return f'<svg width="100%" viewBox="0 0 {total_w} {h + 10}" xmlns="http://www.w3.org/2000/svg">{grid}{"".join(bars)}</svg>'
 
 
 def svg_sparkline(points, width=120, height=32, color=None):
@@ -280,7 +303,7 @@ def build_market_panel(prices, global_data, fg, wow):
 </div>'''
 
 
-def build_technical_panel(technicals, monthly_returns):
+def build_technical_panel(technicals, monthly_returns, sol_sparkline=None):
     price = technicals.get("price") or 0
     ma50 = technicals.get("ma_50") or 0
     ma200 = technicals.get("ma_200") or 0
@@ -288,22 +311,65 @@ def build_technical_panel(technicals, monthly_returns):
     signal = technicals.get("ma_signal") or "N/A"
     h52 = technicals.get("high_52w")
     l52 = technicals.get("low_52w")
-    range_svg = svg_range_bar(price, l52, h52, width=280) if all(isinstance(v, (int, float)) for v in [price, l52, h52]) else ""
+    range_svg = svg_range_bar(price, l52, h52, width=400) if all(isinstance(v, (int, float)) for v in [price, l52, h52]) else ""
     monthly_svg = svg_monthly_returns(monthly_returns)
 
+    # RSI color coding
+    rsi_val = rsi if isinstance(rsi, (int, float)) else 50
+    rsi_color = "var(--red)" if rsi_val < 30 else "var(--green)" if rsi_val > 70 else "var(--text)"
+
+    # MA position context
+    ma_context = ""
+    if ma50 and ma200 and price:
+        if price > ma50 > ma200:
+            ma_context = '<span style="color:var(--green);font-size:0.78rem">Price above both MAs (bullish structure)</span>'
+        elif price < ma50 < ma200:
+            ma_context = '<span style="color:var(--red);font-size:0.78rem">Price below both MAs (bearish structure)</span>'
+        elif price < ma50 and price < ma200:
+            ma_context = '<span style="color:var(--red);font-size:0.78rem">Price below both MAs</span>'
+        elif ma50 < ma200:
+            ma_context = '<span style="color:#f97316;font-size:0.78rem">Death cross (50MA below 200MA)</span>'
+
+    # 7-day price chart (larger version)
+    price_chart = ""
+    if sol_sparkline and len(sol_sparkline) >= 2:
+        price_chart = svg_sparkline(sol_sparkline, width=400, height=80)
+
+    # RSI gauge bar
+    rsi_bar = ""
+    if isinstance(rsi, (int, float)):
+        rsi_pct = max(0, min(100, rsi))
+        rsi_bar = f'''<div style="margin-top:4px">
+  <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--muted)"><span>Oversold</span><span>Overbought</span></div>
+  <div style="background:var(--surface2);height:8px;border-radius:4px;position:relative;margin-top:2px">
+    <div style="position:absolute;left:30%;top:0;width:1px;height:8px;background:#27272a"></div>
+    <div style="position:absolute;left:70%;top:0;width:1px;height:8px;background:#27272a"></div>
+    <div style="position:absolute;left:{rsi_pct}%;top:-2px;width:12px;height:12px;border-radius:50%;background:{rsi_color};transform:translateX(-6px)"></div>
+  </div>
+</div>'''
+
     return f'''<div class="panel-section">
-  <h3>SOL/USD</h3>
-  <div class="stats-row">
-    <div class="stat"><div class="stat-label">Price</div><div class="stat-value">${price:,.2f}</div></div>
-    <div class="stat"><div class="stat-label">50-Day MA</div><div class="stat-value">${ma50:,.2f}</div></div>
-    <div class="stat"><div class="stat-label">200-Day MA</div><div class="stat-value">${ma200:,.2f}</div></div>
-    <div class="stat"><div class="stat-label">RSI (14)</div><div class="stat-value">{rsi}</div></div>
+  <div class="grid grid-2" style="margin-bottom:20px">
+    <div>
+      <h3>SOL/USD <span style="font-size:1.4rem;font-weight:700">${price:,.2f}</span></h3>
+      {f'<div style="margin:12px 0">{price_chart}</div><div class="muted" style="font-size:0.7rem">7-day price action</div>' if price_chart else ''}
+    </div>
+    <div>
+      <div class="stats-row" style="margin-bottom:12px">
+        <div class="stat"><div class="stat-label">50-Day MA</div><div class="stat-value">${ma50:,.2f}</div></div>
+        <div class="stat"><div class="stat-label">200-Day MA</div><div class="stat-value">${ma200:,.2f}</div></div>
+      </div>
+      <div class="stats-row">
+        <div class="stat"><div class="stat-label">RSI (14)</div><div class="stat-value" style="color:{rsi_color}">{rsi}</div>{rsi_bar}</div>
+        <div class="stat"><div class="stat-label">MA Signal</div><div class="stat-value" style="font-size:1rem">{esc(str(signal))}</div>{ma_context}</div>
+      </div>
+    </div>
   </div>
-  <div class="tech-row">
-    <div><span class="stat-label">MA Signal</span><br><strong>{esc(str(signal))}</strong></div>
-    <div><span class="stat-label">52W Range</span><br>{range_svg if range_svg else f"${l52 or 0:,.0f} &mdash; ${h52 or 0:,.0f}"}</div>
+  <div style="margin-bottom:20px">
+    <span class="stat-label">52-Week Range</span>
+    <div style="margin-top:6px">{range_svg if range_svg else f"${l52 or 0:,.0f} &mdash; ${h52 or 0:,.0f}"}</div>
   </div>
-  <h4 style="margin-top:16px">Monthly Returns (%)</h4>
+  <h4>Monthly Returns</h4>
   {monthly_svg}
 </div>'''
 
@@ -539,23 +605,10 @@ def build_market_makers_panel(narrative):
 
 def build_xpulse_panel(narrative):
     xp = narrative.get("x_pulse", {})
-    proto = xp.get("protocol_updates", [])
-    influ = xp.get("influencer_takes", [])
     narratives = xp.get("trending_narratives", [])
 
-    proto_html = ""
-    for p in proto[:6]:
-        proto_html += f'''<div class="xp-item">
-  <span class="xp-handle">{esc(p.get("account",""))}</span>
-  <span>{esc(p.get("text",""))}</span>
-</div>'''
-
-    influ_html = ""
-    for p in influ[:6]:
-        influ_html += f'''<div class="xp-item">
-  <span class="xp-handle">{esc(p.get("account",""))}</span>
-  <span>{esc(p.get("text",""))}</span>
-</div>'''
+    if not narratives:
+        return ""
 
     narr_html = ""
     for n in narratives[:6]:
@@ -564,19 +617,7 @@ def build_xpulse_panel(narrative):
   <strong>{esc(n.get("title",""))}</strong> &mdash; {esc(n.get("detail",""))}
 </div>'''
 
-    # Hide entire panel if no data at all
-    if not proto_html and not influ_html and not narr_html:
-        return ""
-
-    parts = []
-    if proto_html:
-        parts.append(f'<h4>Protocol Updates</h4>{proto_html}')
-    if influ_html:
-        parts.append(f'<h4 style="margin-top:16px">Influencer Takes</h4>{influ_html}')
-    if narr_html:
-        parts.append(f'<h4 style="margin-top:16px">Trending Narratives</h4>{narr_html}')
-
-    return f'<div class="panel-section">{"".join(parts)}</div>'
+    return f'<div class="panel-section"><h4>Trending Narratives</h4>{narr_html}</div>'
 
 
 def build_upgrades_panel(upgrades):
@@ -1759,7 +1800,7 @@ def _build_intelligence_section(whales: dict, narrative: dict) -> str:
         cols.append(f'<div><h4>Market Makers</h4>{mm_html}</div>')
 
     cols_html = f'<div class="section-cols">{"".join(cols)}</div>' if cols else ""
-    xpulse_section = f'<div style="margin-top:20px"><h4>X Pulse</h4>{xpulse_html}</div>' if has_xpulse else ""
+    xpulse_section = f'<div style="margin-top:20px">{xpulse_html}</div>' if has_xpulse else ""
 
     return f'''<div class="dash-section" id="intelligence">
   <div class="section-title">Intelligence</div>
@@ -1820,7 +1861,7 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     sections.append(("technical", "Technical", f'''<div class="dash-section" id="technical">
   <div class="section-title">SOL Technical Analysis</div>
   <div class="section-sources">Source: <a href="https://www.coingecko.com/en/coins/solana" target="_blank">CoinGecko</a></div>
-  {build_technical_panel(technicals, monthly_returns)}
+  {build_technical_panel(technicals, monthly_returns, prices.get("SOL", {}).get("sparkline_7d"))}
 </div>'''))
 
     sections.append(("solana", "Solana", f'''<div class="dash-section" id="solana">
