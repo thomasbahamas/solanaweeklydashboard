@@ -517,33 +517,37 @@ def build_dex_panel(dex):
     perp_cov = dex.get("perp_coverage_pct", 0)
 
     return f'''<div class="panel-section">
-  <h4>Spot + Perps</h4>
   <div class="stats-row">
     <div class="stat"><div class="stat-label">Spot DEX 24h</div><div class="stat-value">{fmt_usd(dex.get("spot_24h",0))}</div><div>{fmt_change(dex.get("spot_change_1d"))} 1d</div></div>
     <div class="stat"><div class="stat-label">Perp DEX 24h</div><div class="stat-value">{fmt_usd(dex.get("perp_24h",0))}</div></div>
     <div class="stat"><div class="stat-label">Combined 24h</div><div class="stat-value">{fmt_usd(dex.get("combined_24h",0))}</div></div>
   </div>
-  <div class="grid grid-2">
-    <div>
-      <h4>Top Spot DEXes{f" ({spot_cov}% of total)" if spot_cov else ""} {source_link("https://defillama.com/dexs/chain/Solana", "DeFiLlama")}</h4>
-      <table><tr><th>Protocol</th><th>Volume 24h</th><th>Chg 1d</th></tr>{spot_rows}</table>
+  <details class="collapse">
+    <summary>Individual DEX breakdown</summary>
+    <div class="grid grid-2">
+      <div>
+        <h4>Top Spot DEXes{f" ({spot_cov}% of total)" if spot_cov else ""} {source_link("https://defillama.com/dexs/chain/Solana", "DeFiLlama")}</h4>
+        <table><tr><th>Protocol</th><th>Volume 24h</th><th>Chg 1d</th></tr>{spot_rows}</table>
+      </div>
+      <div>
+        <h4>Top Perp DEXes{f" ({perp_cov}% of total)" if perp_cov else ""}</h4>
+        <table><tr><th>Protocol</th><th>Volume 24h</th><th>Chg 1d</th></tr>{perp_rows}</table>
+      </div>
     </div>
-    <div>
-      <h4>Top Perp DEXes{f" ({perp_cov}% of total)" if perp_cov else ""}</h4>
-      <table><tr><th>Protocol</th><th>Volume 24h</th><th>Chg 1d</th></tr>{perp_rows}</table>
-    </div>
-  </div>
+  </details>
 </div>'''
 
 
 def build_protocols_panel(protocols):
+    # Filter out CEX entries (e.g. Binance)
+    filtered = [p for p in protocols if p.get("category", "").lower() != "cex"]
     rows = ""
-    for i, p in enumerate(protocols[:20], 1):
+    for i, p in enumerate(filtered[:20], 1):
         rows += f'''<tr>
   <td>{i}</td><td>{esc(p["name"])}</td><td>{esc(p.get("category",""))}</td>
   <td>{fmt_usd(p["tvl"])}</td><td>{fmt_change(p.get("change_1d"))}</td><td>{fmt_change(p.get("change_7d"))}</td>
 </tr>'''
-    chart = svg_bar_chart_horiz(protocols[:10], "name", "tvl", fmt_fn=fmt_usd, accent="#7c3aed")
+    chart = svg_bar_chart_horiz(filtered[:10], "name", "tvl", fmt_fn=fmt_usd, accent="#7c3aed")
 
     return f'''<div class="panel-section">
   <h4>Top 20 by TVL</h4>
@@ -763,13 +767,23 @@ def build_upgrades_panel(upgrades):
   <span class="news-source">{esc(n.get("source",""))}</span>
 </div>'''
 
+    # Collapsible details
+    details_parts = []
+    if versions_html:
+        details_parts.append(f'<details class="collapse"><summary>Client versions</summary><div>{versions_html}</div></details>')
+    if infra_cards:
+        details_parts.append(f'<details class="collapse"><summary>Infrastructure &amp; upcoming upgrades</summary><div class="grid grid-3" style="margin-top:8px">{infra_cards}</div></details>')
+
+    simd_detail = ""
+    if simd_rows:
+        simd_detail = f'<details class="collapse"><summary>Recent SIMDs ({len(recent[:10])})</summary><div>{simd_rows}</div></details>'
+
     return f'''<div class="panel-section">
   {adoption_html}
-  {versions_html}
-  {f'<h4 style="margin-top:24px">Infrastructure &amp; Upcoming Upgrades</h4><div class="grid grid-3" style="margin-bottom:20px">{infra_cards}</div>' if infra_cards else ''}
+  {"".join(details_parts)}
   <h4 style="margin-top:24px">SIMDs — Solana Improvement Documents {source_link("https://github.com/solana-foundation/solana-improvement-documents/pulls", "GitHub")}</h4>
   {simd_stats}
-  {simd_rows if simd_rows else '<p class="muted">No SIMD data available.</p>'}
+  {simd_detail if simd_detail else '<p class="muted">No SIMD data available.</p>'}
   {f'<h4 style="margin-top:20px">Upgrade News</h4>{news_html}' if news_html else ''}
 </div>'''
 
@@ -822,16 +836,19 @@ def build_defi_yields_panel(solana):
 
     return f'''<div class="panel-section">
   {summary_html}
-  <div class="grid grid-2" style="margin-top:16px">
-    <div>
-      <h4>Top Pools by TVL {source_link("https://defillama.com/yields?chain=Solana", "DeFiLlama")}</h4>
-      <table><tr><th>Protocol</th><th>Pool</th><th>APY</th><th>Base</th><th>Reward</th><th>TVL</th></tr>{pool_rows}</table>
+  <details class="collapse">
+    <summary>Pool details</summary>
+    <div class="grid grid-2">
+      <div>
+        <h4>Top Pools by TVL {source_link("https://defillama.com/yields?chain=Solana", "DeFiLlama")}</h4>
+        <table><tr><th>Protocol</th><th>Pool</th><th>APY</th><th>Base</th><th>Reward</th><th>TVL</th></tr>{pool_rows}</table>
+      </div>
+      <div>
+        <h4>Top Stablecoin Yields</h4>
+        <table><tr><th>Protocol</th><th>Pool</th><th>APY</th><th>TVL</th></tr>{stable_rows}</table>
+      </div>
     </div>
-    <div>
-      <h4>Top Stablecoin Yields</h4>
-      <table><tr><th>Protocol</th><th>Pool</th><th>APY</th><th>TVL</th></tr>{stable_rows}</table>
-    </div>
-  </div>
+  </details>
 </div>'''
 
 
@@ -943,8 +960,13 @@ def build_sectors_panel(solana):
 
     return f'''<div class="panel-section">
   <h4>Sector Rotation (Solana TVL by Category) {source_link("https://defillama.com/categories", "DeFiLlama")}</h4>
-  <table><tr><th>Sector</th><th>TVL</th><th>24h Chg</th><th>Protocols</th><th>Top Protocol</th></tr>{sector_rows}</table>
-  {depin_html}
+  <details class="collapse">
+    <summary>Sector breakdown ({len(sectors[:12])} sectors{f", {len(depin)} DePIN protocols" if depin else ""})</summary>
+    <div>
+      <table><tr><th>Sector</th><th>TVL</th><th>24h Chg</th><th>Protocols</th><th>Top Protocol</th></tr>{sector_rows}</table>
+      {depin_html}
+    </div>
+  </details>
 </div>'''
 
 
@@ -1235,6 +1257,17 @@ td { padding: 7px 6px; border-bottom: 1px solid var(--border); }
 }
 .div-alert { padding: 10px 0 10px 14px; margin-bottom: 8px; }
 .div-sev { font-size: 0.75rem; font-weight: 600; margin-left: 6px; }
+
+/* Collapsible details */
+details.collapse { margin-top: 12px; }
+details.collapse summary {
+  cursor: pointer; font-size: 0.78rem; font-weight: 600; color: var(--muted);
+  padding: 8px 0; list-style: none; user-select: none;
+}
+details.collapse summary::-webkit-details-marker { display: none; }
+details.collapse summary::before { content: '\\25B6  '; font-size: 0.6rem; transition: transform 0.15s; display: inline-block; }
+details.collapse[open] summary::before { transform: rotate(90deg); }
+details.collapse > div { padding-top: 8px; }
 
 /* Source links */
 .section-sources { font-size: 0.7rem; margin-bottom: 12px; color: var(--muted); }
@@ -1899,8 +1932,8 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     sectors_panel = build_sectors_panel(solana)
     if sectors_panel:
         sections.append(("sectors", "Sectors", f'''<div class="dash-section" id="sectors">
-  <div class="section-title">Sectors &amp; DePIN</div>
-  <div class="section-sources">Sources: <a href="https://defillama.com/categories" target="_blank">DeFiLlama Categories</a> &middot; <a href="https://defillama.com/protocols/DePin" target="_blank">DePIN</a></div>
+  <div class="section-title">Sectors</div>
+  <div class="section-sources">Source: <a href="https://defillama.com/categories" target="_blank">DeFiLlama Categories</a></div>
   {sectors_panel}
 </div>'''))
 
