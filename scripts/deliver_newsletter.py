@@ -1,7 +1,8 @@
-"""Send the newsletter draft via Kit (ConvertKit) broadcast API.
+"""Send the newsletter draft via Kit broadcast API (v4).
 
 Reads the generated newsletter from data/newsletter.json and sends it
-as a broadcast to all Kit subscribers.
+as a broadcast to all Kit subscribers using the v4 API with send_at
+to trigger actual delivery.
 """
 
 import os
@@ -13,29 +14,33 @@ load_dotenv()
 
 log = get_logger("deliver_newsletter")
 
-KIT_API_SECRET = os.getenv("KIT_API_SECRET", "")
-KIT_API_KEY = os.getenv("KIT_API_KEY", "")
+KIT_API_SECRET = os.getenv("KIT_API_SECRET", "").strip()
+KIT_API_KEY = os.getenv("KIT_API_KEY", "").strip()
 
-KIT_V3_BASE = "https://api.convertkit.com/v3"
+KIT_V4_BASE = "https://api.kit.com/v4"
 
 
 def create_broadcast(subject: str, html_body: str, text_body: str) -> dict | None:
-    """Create and send a Kit broadcast."""
-    if not KIT_API_SECRET:
-        log.error("No KIT_API_SECRET set — cannot send broadcast")
+    """Create and send a Kit broadcast via v4 API."""
+    api_key = KIT_API_SECRET or KIT_API_KEY
+    if not api_key:
+        log.error("No KIT_API_SECRET or KIT_API_KEY set — cannot send broadcast")
         return None
 
-    # Step 1: Create the broadcast
-    log.info("Creating Kit broadcast...")
+    send_at = now_utc()[:19] + "Z"
+    log.info(f"Creating Kit v4 broadcast (send_at={send_at})...")
     resp = requests.post(
-        f"{KIT_V3_BASE}/broadcasts",
+        f"{KIT_V4_BASE}/broadcasts",
+        headers={
+            "Content-Type": "application/json",
+            "X-Kit-Api-Key": api_key,
+        },
         json={
-            "api_secret": KIT_API_SECRET,
             "subject": subject,
             "content": html_body,
             "description": f"Solana Weekly — {now_utc()[:10]}",
             "public": True,
-            "published_at": now_utc()[:19] + "Z",
+            "send_at": send_at,
         },
         timeout=30,
     )
@@ -47,7 +52,7 @@ def create_broadcast(subject: str, html_body: str, text_body: str) -> dict | Non
     data = resp.json()
     broadcast = data.get("broadcast", {})
     broadcast_id = broadcast.get("id")
-    log.info(f"  Broadcast created: ID {broadcast_id}")
+    log.info(f"  Broadcast created & scheduled: ID {broadcast_id}")
 
     return broadcast
 

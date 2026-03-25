@@ -61,6 +61,11 @@ def fmt_wow(wow: dict, key: str) -> str:
     return f'<span class="wow" style="color:{color}">{arrow} {val:+.1f}% WoW</span>'
 
 
+def source_link(url, name):
+    """Clickable source attribution link."""
+    return f'<a href="{url}" target="_blank" rel="noopener" class="source-link">{name} &#8599;</a>'
+
+
 def sentiment_dot(sentiment: str) -> str:
     s = (sentiment or "").lower()
     if "extremely" in s and "bullish" in s:
@@ -359,7 +364,7 @@ def build_ecosystem_panel(chain_tvls, trending):
     return f'''<div class="panel-section">
   <div class="grid grid-2">
     <div>
-      <h4>Top 10 Chains by TVL</h4>
+      <h4>Top 10 Chains by TVL {source_link("https://defillama.com/chains", "DeFiLlama")}</h4>
       <table><tr><th>Chain</th><th>TVL</th></tr>{rows}</table>
     </div>
     <div>
@@ -367,7 +372,7 @@ def build_ecosystem_panel(chain_tvls, trending):
       {chart}
     </div>
   </div>
-  <h4 style="margin-top:20px">Trending on CoinGecko</h4>
+  <h4 style="margin-top:20px">Trending on CoinGecko {source_link("https://www.coingecko.com/en/trending", "View All")}</h4>
   <div class="trending-row">{trending_html}</div>
 </div>'''
 
@@ -452,7 +457,7 @@ def build_dex_panel(dex):
   </div>
   <div class="grid grid-2">
     <div>
-      <h4>Top Spot DEXes{f" ({spot_cov}% of total)" if spot_cov else ""}</h4>
+      <h4>Top Spot DEXes{f" ({spot_cov}% of total)" if spot_cov else ""} {source_link("https://defillama.com/dexs/chain/Solana", "DeFiLlama")}</h4>
       <table><tr><th>Protocol</th><th>Volume 24h</th><th>Chg 1d</th></tr>{spot_rows}</table>
     </div>
     <div>
@@ -500,7 +505,7 @@ def build_whale_panel(whales):
 
     staking_html = ""
     if staking:
-        staking_html = f'<h4 style="margin-top:16px">Staking Flows</h4>'
+        staking_html = f'<h4 style="margin-top:16px">Staking Flows {source_link("https://defillama.com/protocols/Liquid%20Staking/Solana", "DeFiLlama")}</h4>'
         staking_html += f'<p>Total Liquid Staking TVL: <strong>{fmt_usd(staking.get("total_staked_tvl",0))}</strong></p>'
         for p in staking.get("protocols", [])[:7]:
             staking_html += f'<div class="staking-row">{esc(p["name"])}: {fmt_usd(p["tvl"])} {fmt_change(p.get("change_1d"))}</div>'
@@ -719,7 +724,7 @@ def build_upgrades_panel(upgrades):
   {adoption_html}
   {versions_html}
   {f'<h4 style="margin-top:24px">Infrastructure &amp; Upcoming Upgrades</h4><div class="grid grid-3" style="margin-bottom:20px">{infra_cards}</div>' if infra_cards else ''}
-  <h4 style="margin-top:24px">SIMDs — Solana Improvement Documents</h4>
+  <h4 style="margin-top:24px">SIMDs — Solana Improvement Documents {source_link("https://github.com/solana-foundation/solana-improvement-documents/pulls", "GitHub")}</h4>
   {simd_stats}
   {simd_rows if simd_rows else '<p class="muted">No SIMD data available.</p>'}
   {f'<h4 style="margin-top:20px">Upgrade News</h4>{news_html}' if news_html else ''}
@@ -776,7 +781,7 @@ def build_defi_yields_panel(solana):
   {summary_html}
   <div class="grid grid-2" style="margin-top:16px">
     <div>
-      <h4>Top Pools by TVL</h4>
+      <h4>Top Pools by TVL {source_link("https://defillama.com/yields?chain=Solana", "DeFiLlama")}</h4>
       <table><tr><th>Protocol</th><th>Pool</th><th>APY</th><th>Base</th><th>Reward</th><th>TVL</th></tr>{pool_rows}</table>
     </div>
     <div>
@@ -801,6 +806,7 @@ def build_tx_economics_panel(solana):
     base_sol = tx_econ.get("base_fee_sol", 0.000005)
 
     return f'''<div class="panel-section">
+  <div class="section-sources">Source: <a href="https://defillama.com/fees/solana" target="_blank">DeFiLlama Fees</a></div>
   <div class="stats-row">
     <div class="stat"><div class="stat-label">Base Fee</div><div class="stat-value">{base_sol} SOL</div><div class="muted">5,000 lamports</div></div>
     <div class="stat"><div class="stat-label">Priority Fee (Median)</div><div class="stat-value">{pf.get("median", 0):,.0f}</div><div class="muted">micro-lamports</div></div>
@@ -893,7 +899,7 @@ def build_sectors_panel(solana):
 <table><tr><th>Protocol</th><th>Category</th><th>TVL</th><th>24h</th><th>7d</th></tr>{depin_rows}</table>'''
 
     return f'''<div class="panel-section">
-  <h4>Sector Rotation (Solana TVL by Category)</h4>
+  <h4>Sector Rotation (Solana TVL by Category) {source_link("https://defillama.com/categories", "DeFiLlama")}</h4>
   <table><tr><th>Sector</th><th>TVL</th><th>24h Chg</th><th>Protocols</th><th>Top Protocol</th></tr>{sector_rows}</table>
   {depin_html}
 </div>'''
@@ -1186,6 +1192,13 @@ td { padding: 7px 6px; border-bottom: 1px solid var(--border); }
 }
 .div-alert { padding: 10px 0 10px 14px; margin-bottom: 8px; }
 .div-sev { font-size: 0.75rem; font-weight: 600; margin-left: 6px; }
+
+/* Source links */
+.section-sources { font-size: 0.7rem; margin-bottom: 12px; color: var(--muted); }
+.section-sources a { color: var(--muted); text-decoration: none; }
+.section-sources a:hover { color: var(--accent); }
+.source-link { font-size: 0.7rem; color: var(--muted); text-decoration: none; font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 8px; }
+.source-link:hover { color: var(--accent); }
 
 /* Footer */
 footer { text-align: center; color: var(--muted); padding: 24px 0; font-size: 0.75rem; border-top: 1px solid var(--border); margin-top: 20px; }
@@ -1581,6 +1594,8 @@ def build_homepage(compiled: dict, narrative: dict) -> str:
   <span class="hp-nav-sep">|</span>
   <a href="https://solanaweekly.fun" target="_blank">Podcast</a>
   <span class="hp-nav-sep">|</span>
+  <a href="https://skrmaxing.com" target="_blank">SKR Maxing</a>
+  <span class="hp-nav-sep">|</span>
   <a href="#newsletter">Subscribe</a>
 </nav>
 
@@ -1796,26 +1811,31 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
 
     sections.append(("market", "Market", f'''<div class="dash-section" id="market">
   <div class="section-title">Market Overview</div>
+  <div class="section-sources">Sources: <a href="https://www.coingecko.com" target="_blank">CoinGecko</a> &middot; <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Fear &amp; Greed Index</a></div>
   {build_market_panel(prices, global_data, fg, wow)}
 </div>'''))
 
     sections.append(("technical", "Technical", f'''<div class="dash-section" id="technical">
   <div class="section-title">SOL Technical Analysis</div>
+  <div class="section-sources">Source: <a href="https://www.coingecko.com/en/coins/solana" target="_blank">CoinGecko</a></div>
   {build_technical_panel(technicals, monthly_returns)}
 </div>'''))
 
     sections.append(("solana", "Solana", f'''<div class="dash-section" id="solana">
   <div class="section-title">Solana Ecosystem</div>
+  <div class="section-sources">Sources: <a href="https://defillama.com/chain/Solana" target="_blank">DeFiLlama</a> &middot; <a href="https://solscan.io" target="_blank">Solscan</a> &middot; <a href="https://defillama.com/stablecoins/Solana" target="_blank">Stablecoins</a></div>
   {build_solana_panel(solana, wow)}
 </div>'''))
 
     sections.append(("dex", "DEX", f'''<div class="dash-section" id="dex">
   <div class="section-title">DEX Volume</div>
+  <div class="section-sources">Source: <a href="https://defillama.com/dexs/chain/Solana" target="_blank">DeFiLlama DEXs</a></div>
   {build_dex_panel(dex)}
 </div>'''))
 
     sections.append(("protocols", "Protocols", f'''<div class="dash-section" id="protocols">
   <div class="section-title">Top Protocols</div>
+  <div class="section-sources">Source: <a href="https://defillama.com/chain/Solana" target="_blank">DeFiLlama</a></div>
   {build_protocols_panel(protocols)}
 </div>'''))
 
@@ -1823,6 +1843,7 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     if yields_panel:
         sections.append(("yields", "Yields", f'''<div class="dash-section" id="yields">
   <div class="section-title">DeFi Yields</div>
+  <div class="section-sources">Source: <a href="https://defillama.com/yields?chain=Solana" target="_blank">DeFiLlama Yields</a></div>
   {yields_panel}
 </div>'''))
 
@@ -1830,11 +1851,13 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     if sectors_panel:
         sections.append(("sectors", "Sectors", f'''<div class="dash-section" id="sectors">
   <div class="section-title">Sectors &amp; DePIN</div>
+  <div class="section-sources">Sources: <a href="https://defillama.com/categories" target="_blank">DeFiLlama Categories</a> &middot; <a href="https://defillama.com/protocols/DePin" target="_blank">DePIN</a></div>
   {sectors_panel}
 </div>'''))
 
     sections.append(("upgrades", "Upgrades", f'''<div class="dash-section" id="upgrades">
   <div class="section-title">Network Upgrades</div>
+  <div class="section-sources">Sources: <a href="https://github.com/solana-foundation/solana-improvement-documents/pulls" target="_blank">SIMDs (GitHub)</a> &middot; <a href="https://www.validators.app" target="_blank">Validators.app</a></div>
   {build_upgrades_panel(upgrades)}
 </div>'''))
 
@@ -1853,9 +1876,10 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     trending_html = ''.join(f'<span class="trending-tag">#{t.get("market_cap_rank","?")} <strong>{esc(t.get("symbol","?"))}</strong></span>' for t in trending[:10])
     sections.append(("competitive", "Share", f'''<div class="dash-section" id="competitive">
   <div class="section-title">Chain Market Share</div>
+  <div class="section-sources">Sources: <a href="https://defillama.com/chains" target="_blank">DeFiLlama Chains</a> &middot; <a href="https://www.coingecko.com/en/trending" target="_blank">CoinGecko Trending</a></div>
   {build_competitive_panel(chain_tvls)}
   <div style="margin-top:20px">
-    <h4>Trending on CoinGecko</h4>
+    <h4>Trending on CoinGecko {source_link("https://www.coingecko.com/en/trending", "View All")}</h4>
     <div class="trending-row">{trending_html}</div>
   </div>
 </div>'''))
