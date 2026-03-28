@@ -11,70 +11,11 @@ Dashboard (output/dashboard/index.html):
 """
 
 import json
-import html as html_mod
 from pathlib import Path
 from config import load_json, get_logger, now_utc, OUTPUT_DIR
+from utils import esc, fmt_usd, fmt_change, fmt_wow, source_link, sentiment_dot, freshness_badge
 
 log = get_logger("generate_dashboard")
-
-
-# ---------------------------------------------------------------------------
-# Formatting helpers
-# ---------------------------------------------------------------------------
-
-def esc(text):
-    """HTML-escape user-supplied text."""
-    if text is None:
-        return ""
-    return html_mod.escape(str(text))
-
-
-def fmt_usd(value, decimals=2, compact=True):
-    if value is None or value == 0:
-        return "$0"
-    if compact:
-        if abs(value) >= 1e12:
-            return f"${value/1e12:.{decimals}f}T"
-        if abs(value) >= 1e9:
-            return f"${value/1e9:.{decimals}f}B"
-        if abs(value) >= 1e6:
-            return f"${value/1e6:.{decimals}f}M"
-        if abs(value) >= 1e3:
-            return f"${value/1e3:.{decimals}f}K"
-    return f"${value:,.{decimals}f}"
-
-
-def fmt_change(value):
-    if value is None:
-        return ""
-    arrow = "&#9650;" if value > 0 else "&#9660;" if value < 0 else "&#8211;"
-    color = "var(--green)" if value > 0 else "var(--red)" if value < 0 else "var(--muted)"
-    return f'<span style="color:{color}">{arrow} {value:+.1f}%</span>'
-
-
-def fmt_wow(wow: dict, key: str) -> str:
-    if not wow or key not in wow:
-        return '<span class="wow">WoW: collecting</span>'
-    val = wow[key]
-    color = "var(--green)" if val > 0 else "var(--red)" if val < 0 else "var(--muted)"
-    arrow = "&#9650;" if val > 0 else "&#9660;" if val < 0 else "&#8211;"
-    return f'<span class="wow" style="color:{color}">{arrow} {val:+.1f}% WoW</span>'
-
-
-def source_link(url, name):
-    """Clickable source attribution link."""
-    return f'<a href="{url}" target="_blank" rel="noopener" class="source-link">{name} &#8599;</a>'
-
-
-def sentiment_dot(sentiment: str) -> str:
-    s = (sentiment or "").lower()
-    if "extremely" in s and "bullish" in s:
-        return '<span class="dot dot-green-bright"></span>'
-    if "bullish" in s:
-        return '<span class="dot dot-green"></span>'
-    if "bearish" in s:
-        return '<span class="dot dot-red"></span>'
-    return '<span class="dot dot-gray"></span>'
 
 
 # ---------------------------------------------------------------------------
@@ -1177,8 +1118,14 @@ h4 { font-size: 0.9rem; margin-bottom: 8px; color: var(--muted); text-transform:
   font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: 1.5px; color: var(--accent); margin-bottom: 16px;
   padding-bottom: 8px; border-bottom: 2px solid var(--accent);
-  display: inline-block;
+  cursor: pointer; user-select: none;
 }
+.section-toggle {
+  color: var(--muted); margin-left: 8px; font-size: 0.7rem;
+  transition: transform 0.15s;
+}
+.section-body { transition: max-height 0.2s ease; }
+.freshness { font-size: 0.65rem; font-weight: 600; text-transform: none; letter-spacing: 0; }
 
 /* Two-column section layout */
 .section-cols {
@@ -1349,6 +1296,35 @@ footer a:hover { text-decoration: underline; }
 # ---------------------------------------------------------------------------
 
 JS = """
+// Section collapse/expand with localStorage persistence
+function toggleSection(id) {
+  var body = document.getElementById('body-' + id);
+  var toggle = document.getElementById('toggle-' + id);
+  if (!body) return;
+  var collapsed = JSON.parse(localStorage.getItem('sw-collapsed') || '{}');
+  if (body.style.display === 'none') {
+    body.style.display = '';
+    if (toggle) toggle.innerHTML = '&#9662;';
+    delete collapsed[id];
+  } else {
+    body.style.display = 'none';
+    if (toggle) toggle.innerHTML = '&#9656;';
+    collapsed[id] = true;
+  }
+  localStorage.setItem('sw-collapsed', JSON.stringify(collapsed));
+}
+// Restore collapsed state on load
+(function() {
+  var collapsed = JSON.parse(localStorage.getItem('sw-collapsed') || '{}');
+  for (var id in collapsed) {
+    if (!collapsed.hasOwnProperty(id)) continue;
+    var body = document.getElementById('body-' + id);
+    var toggle = document.getElementById('toggle-' + id);
+    if (body) body.style.display = 'none';
+    if (toggle) toggle.innerHTML = '&#9656;';
+  }
+})();
+
 // Kit newsletter subscribe
 function dashSubscribe(e) {
   e.preventDefault();
@@ -1857,9 +1833,20 @@ def _section_if(panel_html: str, section_id: str, title: str) -> str:
     """Wrap panel HTML in a dash-section div, or return empty string if panel is empty."""
     if not panel_html or not panel_html.strip():
         return ""
+    return _wrap_section(section_id, title, "", panel_html)
+
+
+def _wrap_section(section_id: str, title: str, sources: str, content: str, freshness: str = "") -> str:
+    """Build a collapsible dashboard section with optional sources and freshness badge."""
+    if not content or not content.strip():
+        return ""
+    sources_html = f'<div class="section-sources">{sources}{freshness}</div>' if sources or freshness else ""
     return f'''<div class="dash-section" id="{section_id}">
-  <div class="section-title">{title}</div>
-  {panel_html}
+  <div class="section-title" onclick="toggleSection('{section_id}')">{title}<span class="section-toggle" id="toggle-{section_id}">&#9662;</span></div>
+  <div class="section-body" id="body-{section_id}">
+    {sources_html}
+    {content}
+  </div>
 </div>'''
 
 
@@ -1886,11 +1873,7 @@ def _build_intelligence_section(whales: dict, narrative: dict) -> str:
     cols_html = f'<div class="section-cols">{"".join(cols)}</div>' if cols else ""
     xpulse_section = f'<div style="margin-top:20px">{xpulse_html}</div>' if has_xpulse else ""
 
-    return f'''<div class="dash-section" id="intelligence">
-  <div class="section-title">Intelligence</div>
-  {cols_html}
-  {xpulse_section}
-</div>'''
+    return _wrap_section("intelligence", "Intelligence", "", f"{cols_html}{xpulse_section}")
 
 
 def build_dashboard(compiled: dict, narrative: dict) -> str:
@@ -1920,8 +1903,17 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
 
     generated_at = compiled.get("generated_at", now_utc())
 
-    # Data freshness check — warn if market data is >6 hours old
+    # Per-source freshness timestamps
     market_ts = market.get("timestamp", "")
+    solana_ts = solana.get("timestamp", "")
+    news_ts = compiled.get("news", {}).get("timestamp", "")
+    upgrades_ts = upgrades.get("timestamp", "")
+    market_fresh = freshness_badge(market_ts)
+    solana_fresh = freshness_badge(solana_ts)
+    news_fresh = freshness_badge(news_ts)
+    upgrades_fresh = freshness_badge(upgrades_ts)
+
+    # Stale badge in header
     stale_badge = ""
     try:
         from datetime import datetime, timezone
@@ -1940,57 +1932,65 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     if signal_html:
         sections.append(("signal", "Signal", signal_html))
 
-    sections.append(("market", "Market", f'''<div class="dash-section" id="market">
-  <div class="section-title">Market Overview</div>
-  <div class="section-sources">Sources: <a href="https://www.coingecko.com" target="_blank">CoinGecko</a> &middot; <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Fear &amp; Greed Index</a></div>
-  {build_market_panel(prices, global_data, fg, wow)}
-</div>'''))
+    sections.append(("market", "Market", _wrap_section(
+        "market", "Market Overview",
+        'Sources: <a href="https://www.coingecko.com" target="_blank">CoinGecko</a> &middot; <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Fear &amp; Greed Index</a>',
+        build_market_panel(prices, global_data, fg, wow),
+        market_fresh,
+    )))
 
-    sections.append(("technical", "Technical", f'''<div class="dash-section" id="technical">
-  <div class="section-title">SOL Technical Analysis</div>
-  <div class="section-sources">Source: <a href="https://www.coingecko.com/en/coins/solana" target="_blank">CoinGecko</a></div>
-  {build_technical_panel(technicals, monthly_returns, prices.get("SOL", {}).get("sparkline_7d"))}
-</div>'''))
+    sections.append(("technical", "Technical", _wrap_section(
+        "technical", "SOL Technical Analysis",
+        'Source: <a href="https://www.coingecko.com/en/coins/solana" target="_blank">CoinGecko</a>',
+        build_technical_panel(technicals, monthly_returns, prices.get("SOL", {}).get("sparkline_7d")),
+        market_fresh,
+    )))
 
-    sections.append(("solana", "Solana", f'''<div class="dash-section" id="solana">
-  <div class="section-title">Solana Ecosystem</div>
-  <div class="section-sources">Sources: <a href="https://defillama.com/chain/Solana" target="_blank">DeFiLlama</a> &middot; <a href="https://solscan.io" target="_blank">Solscan</a> &middot; <a href="https://defillama.com/stablecoins/Solana" target="_blank">Stablecoins</a></div>
-  {build_solana_panel(solana, wow)}
-</div>'''))
+    sections.append(("solana", "Solana", _wrap_section(
+        "solana", "Solana Ecosystem",
+        'Sources: <a href="https://defillama.com/chain/Solana" target="_blank">DeFiLlama</a> &middot; <a href="https://solscan.io" target="_blank">Solscan</a> &middot; <a href="https://defillama.com/stablecoins/Solana" target="_blank">Stablecoins</a>',
+        build_solana_panel(solana, wow),
+        solana_fresh,
+    )))
 
-    sections.append(("dex", "DEX", f'''<div class="dash-section" id="dex">
-  <div class="section-title">DEX Volume</div>
-  <div class="section-sources">Source: <a href="https://defillama.com/dexs/chain/Solana" target="_blank">DeFiLlama DEXs</a></div>
-  {build_dex_panel(dex)}
-</div>'''))
+    sections.append(("dex", "DEX", _wrap_section(
+        "dex", "DEX Volume",
+        'Source: <a href="https://defillama.com/dexs/chain/Solana" target="_blank">DeFiLlama DEXs</a>',
+        build_dex_panel(dex),
+        solana_fresh,
+    )))
 
-    sections.append(("protocols", "Protocols", f'''<div class="dash-section" id="protocols">
-  <div class="section-title">Top Protocols</div>
-  <div class="section-sources">Source: <a href="https://defillama.com/chain/Solana" target="_blank">DeFiLlama</a></div>
-  {build_protocols_panel(protocols)}
-</div>'''))
+    sections.append(("protocols", "Protocols", _wrap_section(
+        "protocols", "Top Protocols",
+        'Source: <a href="https://defillama.com/chain/Solana" target="_blank">DeFiLlama</a>',
+        build_protocols_panel(protocols),
+        solana_fresh,
+    )))
 
     yields_panel = build_defi_yields_panel(solana)
     if yields_panel:
-        sections.append(("yields", "Yields", f'''<div class="dash-section" id="yields">
-  <div class="section-title">DeFi Yields</div>
-  <div class="section-sources">Source: <a href="https://defillama.com/yields?chain=Solana" target="_blank">DeFiLlama Yields</a></div>
-  {yields_panel}
-</div>'''))
+        sections.append(("yields", "Yields", _wrap_section(
+            "yields", "DeFi Yields",
+            'Source: <a href="https://defillama.com/yields?chain=Solana" target="_blank">DeFiLlama Yields</a>',
+            yields_panel,
+            solana_fresh,
+        )))
 
     sectors_panel = build_sectors_panel(solana)
     if sectors_panel:
-        sections.append(("sectors", "Sectors", f'''<div class="dash-section" id="sectors">
-  <div class="section-title">Sectors</div>
-  <div class="section-sources">Source: <a href="https://defillama.com/categories" target="_blank">DeFiLlama Categories</a></div>
-  {sectors_panel}
-</div>'''))
+        sections.append(("sectors", "Sectors", _wrap_section(
+            "sectors", "Sectors",
+            'Source: <a href="https://defillama.com/categories" target="_blank">DeFiLlama Categories</a>',
+            sectors_panel,
+            solana_fresh,
+        )))
 
-    sections.append(("upgrades", "Upgrades", f'''<div class="dash-section" id="upgrades">
-  <div class="section-title">Network Upgrades</div>
-  <div class="section-sources">Sources: <a href="https://github.com/solana-foundation/solana-improvement-documents/pulls" target="_blank">SIMDs (GitHub)</a> &middot; <a href="https://www.validators.app" target="_blank">Validators.app</a></div>
-  {build_upgrades_panel(upgrades)}
-</div>'''))
+    sections.append(("upgrades", "Upgrades", _wrap_section(
+        "upgrades", "Network Upgrades",
+        'Sources: <a href="https://github.com/solana-foundation/solana-improvement-documents/pulls" target="_blank">SIMDs (GitHub)</a> &middot; <a href="https://www.validators.app" target="_blank">Validators.app</a>',
+        build_upgrades_panel(upgrades),
+        upgrades_fresh,
+    )))
 
     tx_econ_html = _section_if(build_tx_economics_panel(solana), "tx-econ", "Transaction Economics")
     if tx_econ_html:
@@ -2001,25 +2001,26 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
         sections.append(("intelligence", "Intel", intel_html))
 
     trending_html = ''.join(f'<span class="trending-tag">#{t.get("market_cap_rank","?")} <strong>{esc(t.get("symbol","?"))}</strong></span>' for t in trending[:10])
-    sections.append(("competitive", "Share", f'''<div class="dash-section" id="competitive">
-  <div class="section-title">Chain Market Share</div>
-  <div class="section-sources">Sources: <a href="https://defillama.com/chains" target="_blank">DeFiLlama Chains</a> &middot; <a href="https://www.coingecko.com/en/trending" target="_blank">CoinGecko Trending</a></div>
-  {build_competitive_panel(chain_tvls)}
+    competitive_content = f'''{build_competitive_panel(chain_tvls)}
   <div style="margin-top:20px">
     <h4>Trending on CoinGecko {source_link("https://www.coingecko.com/en/trending", "View All")}</h4>
     <div class="trending-row">{trending_html}</div>
-  </div>
-</div>'''))
+  </div>'''
+    sections.append(("competitive", "Share", _wrap_section(
+        "competitive", "Chain Market Share",
+        'Sources: <a href="https://defillama.com/chains" target="_blank">DeFiLlama Chains</a> &middot; <a href="https://www.coingecko.com/en/trending" target="_blank">CoinGecko Trending</a>',
+        competitive_content,
+        solana_fresh,
+    )))
 
     trade_thesis = narrative.get("trade_thesis", {})
     trade_html = _section_if(build_trade_panel(trade_thesis), "trade", "So, What's the Trade?")
     if trade_html:
         sections.append(("trade", "Trade", trade_html))
 
-    sections.append(("news", "News", f'''<div class="dash-section" id="news">
-  <div class="section-title">News Feed</div>
-  {build_news_panel(news)}
-</div>'''))
+    sections.append(("news", "News", _wrap_section(
+        "news", "News Feed", "", build_news_panel(news), news_fresh,
+    )))
 
     # Build nav dynamically from active sections
     nav_links = "".join(f'<a href="#{sid}">{label}</a>' for sid, label, _ in sections)

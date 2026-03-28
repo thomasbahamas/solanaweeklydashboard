@@ -2,9 +2,20 @@ name: Solana Weekly Dashboard
 
 on:
   schedule:
-    # Run at 5:00 AM PT (12:00 UTC) every day
+    # Full pipeline daily at 5:00 AM PT (12:00 UTC)
     - cron: '0 12 * * *'
-  workflow_dispatch: # Manual trigger
+    # Market-only refresh every 4h (0, 4, 8, 16, 20 UTC — skip 12 UTC which is the full run)
+    - cron: '0 0,4,8,16,20 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Pipeline mode'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - market-only
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -32,6 +43,14 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Restore cached data
+        uses: actions/cache@v4
+        with:
+          path: data/*.json
+          key: dashboard-data-${{ github.run_id }}
+          restore-keys: |
+            dashboard-data-
+
       - name: Run pipeline
         working-directory: scripts
         env:
@@ -42,10 +61,20 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           KIT_API_KEY: ${{ secrets.KIT_API_KEY }}
           KIT_API_SECRET: ${{ secrets.KIT_API_SECRET }}
-        run: python run_pipeline.py
+        run: |
+          if [[ "${{ github.event.schedule }}" == "0 0,4,8,16,20 * * *" ]]; then
+            echo "Running market-only refresh (4h cron)"
+            python run_pipeline.py --market-only
+          elif [[ "${{ github.event.inputs.mode }}" == "market-only" ]]; then
+            echo "Running market-only refresh (manual trigger)"
+            python run_pipeline.py --market-only
+          else
+            echo "Running full pipeline"
+            python run_pipeline.py
+          fi
 
       - name: Send Telegram notification
-        if: success()
+        if: success() && github.event.schedule != '0 0,4,8,16,20 * * *'
         working-directory: scripts
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

@@ -16,6 +16,7 @@ Format:
 import html as html_mod
 from datetime import datetime, timezone
 from config import load_json, save_json, get_logger, now_utc
+from utils import esc, fmt_usd
 
 log = get_logger("newsletter")
 
@@ -38,27 +39,8 @@ RED = "#ef4444"
 # Helpers
 # ---------------------------------------------------------------------------
 
-def esc(text):
-    """HTML-escape user-supplied text."""
-    if text is None:
-        return ""
-    return html_mod.escape(str(text))
 
-
-def fmt_usd(value, decimals=2, compact=True):
-    """Format a number as compact USD."""
-    if value is None or value == 0:
-        return "$0"
-    if compact:
-        if abs(value) >= 1e12:
-            return f"${value/1e12:.{decimals}f}T"
-        if abs(value) >= 1e9:
-            return f"${value/1e9:.{decimals}f}B"
-        if abs(value) >= 1e6:
-            return f"${value/1e6:.{decimals}f}M"
-        if abs(value) >= 1e3:
-            return f"${value/1e3:.{decimals}f}K"
-    return f"${value:,.{decimals}f}"
+# esc and fmt_usd imported from utils
 
 
 def fmt_price(value):

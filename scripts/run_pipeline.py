@@ -39,12 +39,28 @@ def main():
     parser = argparse.ArgumentParser(description="Solana Weekly Dashboard Pipeline")
     parser.add_argument("--data-only", action="store_true", help="Only fetch data, skip AI and dashboard")
     parser.add_argument("--no-ai", action="store_true", help="Skip AI narrative generation")
+    parser.add_argument("--market-only", action="store_true", help="Quick refresh: fetch market data only, recompile, regenerate dashboard")
     args = parser.parse_args()
 
     log.info("=" * 60)
+    total_start = time.time()
+
+    # Quick market-only refresh: fetch prices, recompile, regenerate dashboard
+    if args.market_only:
+        log.info("MARKET-ONLY REFRESH")
+        log.info("=" * 60)
+        run_step("Fetch Market Data", "fetch_market")
+        run_step("Compile Data", "compile_data")
+        run_step("Generate Dashboard", "generate_dashboard")
+        total_elapsed = time.time() - total_start
+        log.info("")
+        log.info("=" * 60)
+        log.info(f"MARKET REFRESH COMPLETE — {total_elapsed:.1f}s total")
+        log.info("=" * 60)
+        return
+
     log.info("SOLANA WEEKLY DASHBOARD PIPELINE")
     log.info("=" * 60)
-    total_start = time.time()
 
     # Step 1: Fetch all data
     run_step("Fetch Market Data", "fetch_market")
