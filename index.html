@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solana Weekly — Daily Solana Intelligence</title>
+<meta name="description" content="Daily Solana ecosystem intelligence. Key metrics, market analysis, divergence alerts, and top stories delivered to your inbox every morning.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%239333ea'/%3E%3Ctext x='16' y='23' font-family='Arial,sans-serif' font-size='22' font-weight='900' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap');
+
+:root {
+  --bg: #09090b; --surface: #111113; --surface2: #18181b;
+  --border: #27272a; --border-heavy: #3f3f46;
+  --text: #e4e4e7; --muted: #71717a; --dim: #52525b;
+  --accent: #9333ea; --accent2: #7c3aed;
+  --green: #22c55e; --red: #ef4444;
+  --serif: 'Playfair Display', 'Georgia', 'Times New Roman', serif;
+  --body: 'Source Serif 4', 'Georgia', serif;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: var(--body); background: var(--bg); color: var(--text);
+  line-height: 1.7; max-width: 900px; margin: 0 auto; padding: 0 20px;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* === MASTHEAD === */
+.masthead {
+  text-align: center; padding: 36px 0 0;
+}
+.masthead-rule { border: none; border-top: 3px double var(--border-heavy); margin-bottom: 16px; }
+.masthead h1 {
+  font-family: var(--serif); font-size: 3.2rem; font-weight: 900;
+  letter-spacing: 4px; line-height: 1.1;
+}
+.masthead .edition {
+  font-family: var(--sans); font-size: 0.75rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 2px; margin-top: 6px;
+}
+.masthead-rule-bottom { border: none; border-top: 1px solid var(--border); margin-top: 16px; }
+
+/* === NAV === */
+.hp-nav {
+  display: flex; justify-content: center; gap: 8px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  font-family: var(--sans); font-size: 0.78rem; text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.hp-nav a {
+  color: var(--dim); padding: 4px 14px;
+  transition: color 0.15s;
+}
+.hp-nav a:hover { color: var(--text); text-decoration: none; }
+.hp-nav-sep { color: var(--border); }
+
+/* === TICKER STRIP === */
+.ticker-strip {
+  display: flex; justify-content: center; gap: 0;
+  border-bottom: 2px solid var(--border-heavy);
+  font-family: var(--sans); overflow-x: auto;
+}
+.ticker {
+  padding: 12px 20px; text-align: center;
+  border-right: 1px solid var(--border); flex-shrink: 0;
+}
+.ticker:last-child { border-right: none; }
+.ticker .t-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); }
+.ticker .t-value { font-size: 1.15rem; font-weight: 700; margin: 2px 0; }
+.ticker .t-change { font-size: 0.75rem; }
+
+/* === HEADLINE / LEAD === */
+.lead {
+  padding: 28px 0; border-bottom: 1px solid var(--border);
+}
+.lead .kicker {
+  font-family: var(--sans); font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--accent); margin-bottom: 8px;
+}
+.lead h2 {
+  font-family: var(--serif); font-size: 1.8rem; font-weight: 700;
+  line-height: 1.3; margin-bottom: 12px;
+}
+.lead .deck {
+  font-size: 1.05rem; color: var(--muted); line-height: 1.7;
+  font-style: italic;
+}
+
+/* === TWO COLUMN BODY === */
+.columns {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+  padding: 24px 0; border-bottom: 1px solid var(--border);
+}
+.col { }
+
+/* === SECTIONS === */
+.section-head {
+  font-family: var(--sans); font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--accent); padding-bottom: 6px;
+  border-bottom: 2px solid var(--accent); margin-bottom: 14px;
+  display: inline-block;
+}
+
+/* Signal/context */
+.signal-text {
+  font-size: 0.95rem; line-height: 1.85; white-space: pre-wrap;
+}
+
+/* Alerts */
+.hp-alert {
+  padding: 10px 0 10px 16px; margin-bottom: 8px;
+  border-left: 3px solid var(--dim);
+}
+.hp-alert-high { border-left-color: var(--red); }
+.hp-alert-medium { border-left-color: #f97316; }
+.hp-alert-low { border-left-color: #eab308; }
+.hp-alert strong { font-family: var(--sans); font-size: 0.85rem; }
+.hp-alert .desc { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+.hp-alert .sev {
+  font-family: var(--sans); font-size: 0.65rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px; margin-left: 8px;
+}
+
+/* News */
+.hp-news-item {
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.hp-news-item a { color: var(--text); font-size: 0.9rem; }
+.hp-news-item a:hover { color: var(--accent); }
+.hp-news-source {
+  display: block; font-family: var(--sans); color: var(--dim);
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;
+}
+
+/* Angles */
+.hp-angle { padding: 5px 0; font-size: 0.9rem; }
+.hp-angle-arrow { color: var(--accent); margin-right: 6px; }
+
+/* === CTA === */
+.hp-cta { text-align: center; padding: 32px 0; }
+.hp-cta-btn {
+  display: inline-block; background: var(--accent); color: #fff;
+  padding: 14px 44px; border-radius: 6px; font-family: var(--sans);
+  font-size: 0.9rem; font-weight: 600; text-decoration: none;
+  letter-spacing: 0.5px; transition: opacity 0.15s;
+}
+.hp-cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+/* === NEWSLETTER === */
+.hp-newsletter {
+  border: 2px solid var(--border-heavy); padding: 36px 32px;
+  text-align: center; margin: 0 0 24px;
+}
+.hp-newsletter h2 { font-family: var(--serif); font-size: 1.3rem; margin-bottom: 6px; }
+.hp-newsletter .sub { color: var(--muted); font-size: 0.88rem; margin-bottom: 20px; }
+.hp-email-form { display: flex; gap: 8px; max-width: 420px; margin: 0 auto; }
+.hp-email-input {
+  flex: 1; padding: 12px 16px; border: 1px solid var(--border-heavy);
+  background: var(--bg); color: var(--text); font-family: var(--sans);
+  font-size: 0.88rem; outline: none;
+}
+.hp-email-input:focus { border-color: var(--accent); }
+.hp-email-btn {
+  padding: 12px 28px; border: none;
+  background: var(--text); color: var(--bg); font-family: var(--sans);
+  font-weight: 600; cursor: pointer; font-size: 0.85rem;
+  letter-spacing: 0.5px; transition: opacity 0.15s;
+}
+.hp-email-btn:hover { opacity: 0.85; }
+
+/* === FOOTER === */
+footer {
+  text-align: center; color: var(--dim); padding: 20px 0;
+  font-family: var(--sans); font-size: 0.7rem; letter-spacing: 0.5px;
+  border-top: 3px double var(--border-heavy); margin-top: 8px;
+}
+footer a { color: var(--muted); }
+
+/* === RESPONSIVE === */
+@media (max-width: 640px) {
+  .masthead h1 { font-size: 2.2rem; letter-spacing: 2px; }
+  .columns { grid-template-columns: 1fr; gap: 0; }
+  .col { padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .col:last-child { border-bottom: none; margin-bottom: 0; }
+  .ticker { padding: 10px 14px; }
+  .ticker .t-value { font-size: 1rem; }
+  .lead h2 { font-size: 1.4rem; }
+  .hp-email-form { flex-direction: column; }
+  .hp-newsletter { padding: 28px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- MASTHEAD -->
+<div class="masthead">
+  <hr class="masthead-rule">
+  <h1>SOLANA WEEKLY</h1>
+  <div class="edition">2026-03-29 &nbsp;&bull;&nbsp; Daily Intelligence</div>
+  <hr class="masthead-rule-bottom">
+</div>
+
+<!-- NAV -->
+<nav class="hp-nav">
+  <a href="/dashboard">Dashboard</a>
+  <span class="hp-nav-sep">|</span>
+  <a href="https://solanaweekly.fun" target="_blank">Podcast</a>
+  <span class="hp-nav-sep">|</span>
+  <a href="https://skrmaxing.com" target="_blank">SKR Maxing</a>
+  <span class="hp-nav-sep">|</span>
+  <a href="#newsletter">Subscribe</a>
+</nav>
+
+<!-- TICKER STRIP -->
+<div class="ticker-strip">
+  <div class="ticker">
+    <div class="t-label">SOL</div>
+    <div class="t-value">$82.43</div>
+    <div class="t-change"><span style="color:var(--red)">&#9660; -0.7%</span></div>
+  </div>
+  <div class="ticker">
+    <div class="t-label">BTC</div>
+    <div class="t-value">$66,724</div>
+    <div class="t-change"><span style="color:var(--green)">&#9650; +0.4%</span></div>
+  </div>
+  <div class="ticker">
+    <div class="t-label">Fear &amp; Greed</div>
+    <div class="t-value" style="color:#ef4444">9</div>
+    <div class="t-change" style="color:var(--muted)">Extreme Fear</div>
+  </div>
+  <div class="ticker">
+    <div class="t-label">DEX Vol 24h</div>
+    <div class="t-value">$1.48B</div>
+    <div class="t-change"><span class="wow">WoW: collecting</span></div>
+  </div>
+  <div class="ticker">
+    <div class="t-label">Solana TVL</div>
+    <div class="t-value">$6.36B</div>
+    <div class="t-change"><span style="color:var(--red)">&#9660; -0.7%</span></div>
+  </div>
+  <div class="ticker">
+    <div class="t-label">SOL/BTC</div>
+    <div class="t-value">0.001235</div>
+    <div class="t-change">&nbsp;</div>
+  </div>
+</div>
+
+<!-- LEAD STORY -->
+<div class="lead">
+  <div class="kicker">Today&rsquo;s Signal</div>
+  <h2>The market is in deep distress</h2>
+  <div class="deck">Fear &amp; Greed at 9 — Extreme Fear, down from 12 yesterday — signals capitulation territory, not a buying panic. BTC dominance at 56.1% confirms a classic risk-off rotation where capital is consolidating into the highest-conviction asset.</div>
+</div>
+
+<!-- TWO COLUMN BODY -->
+<div class="columns">
+  <div class="col">
+    <div class="section-head">Analysis</div>
+    <div class="signal-text">The market is in deep distress. Fear &amp; Greed at 9 — Extreme Fear, down from 12 yesterday — signals capitulation territory, not a buying panic. BTC dominance at 56.1% confirms a classic risk-off rotation where capital is consolidating into the highest-conviction asset. Total market cap is effectively flat at $2.38T, while SOL underperforms at -0.7% against BTC&#x27;s +0.4%, pushing SOL dominance to just 1.98%. ETH is pinned at $2,000 — a psychologically significant level — with zero 24h movement, suggesting large holders are defending a floor rather than accumulating.
+
+Solana&#x27;s on-chain picture is deteriorating faster than price alone suggests. Spot DEX volume collapsed 28.3% in 24 hours to $1.07B. Perp DEX volume is down across the board, with GMTrade shedding 87.5% and Pacifica off 47.8%. This isn&#x27;t normal daily variance — this is a broad withdrawal of active trading capital from the ecosystem. TVL at $6.36B is holding relatively stable (-0.7% 24h), but the 7-day trend tells a different story: Kamino Lend -7.6%, Jito -7.8%, Jupiter Lend -8.0%. Liquidity is draining slowly but consistently.
+
+The one divergence that stands out against this red backdrop: RWA protocols are holding ground. BlackRock BUIDL is up +6.1% over 7 days. Hastra +2.4%. Sentora (Risk Curators) up +1.2% in 24h. This isn&#x27;t coincidence — institutional capital is rotating out of speculative DeFi into yield-bearing, regulated instruments on-chain. That&#x27;s a structural signal, not a noise event. Stablecoins on Solana at $62.41B remain elevated, indicating dry powder is parked and waiting — not fleeing the chain entirely.</div>
+    <div style="margin-top:20px"><div class="section-head">What to Watch</div><div class="hp-angle"><span class="hp-angle-arrow">&#9656;</span> The RWA Rotation: Institutional capital on Solana is quietly moving from DeFi yield products into BlackRock BUIDL and Hastra-class instruments — while retail is in Extreme Fear. Who is buying what the crowd is selling?</div><div class="hp-angle"><span class="hp-angle-arrow">&#9656;</span> Firedancer at 14.4%: Jump Crypto&#x27;s validator client is live and gaining stake weight. What does client diversity actually mean for Solana&#x27;s resilience — and why isn&#x27;t the market pricing it?</div><div class="hp-angle"><span class="hp-angle-arrow">&#9656;</span> $62 Billion in Stablecoins and Nowhere to Go: Solana is sitting on a record stablecoin base at a moment of maximum fear. Is this the setup for the next leg up, or are holders waiting for a lower entry that never comes?</div></div>
+  </div>
+  <div class="col">
+    <div class="section-head">Divergence Alerts</div><div class="hp-alert hp-alert-high">
+  <strong>RWA TVL Growing While Speculative DeFi Bleeds</strong><span class="sev" style="color:var(--red)">high</span>
+  <div class="desc">BlackRock BUIDL +6.1% 7d, Hastra +2.4% 7d, Sentora +1.2% 24h — all gaining while Kamino Lend (-7.6% 7d), Jito (-7.8% 7d), and Jupiter Lend (-8.0% 7d) are losing capital. Institutional money is actively rotating from yield-farming to regulated on-chain assets. This is a sector rotation signal, not a coincidence.</div>
+</div><div class="hp-alert hp-alert-high">
+  <strong>DEX Volume Collapse vs. Stable TVL</strong><span class="sev" style="color:var(--red)">high</span>
+  <div class="desc">Spot DEX volume down 28.3% in 24h, perp volume down across all major venues — yet TVL only dropped 0.7%. This divergence means liquidity is sitting idle in protocols rather than being put to work. Capital is present but paralyzed. Historically, this resolves with either a sharp volume spike (capitulation rally) or a TVL flush if holders lose patience.</div>
+</div><div class="hp-alert hp-alert-high">
+  <strong>JTO Price vs. Jito Staking TVL</strong><span class="sev" style="color:var(--red)">high</span>
+  <div class="desc">JTO token is down 3.0% on the day — worst performer in the tracked universe — yet Jito Liquid Staking TVL at $1.025B remains the second-largest LST by TVL. The governance token is being punished while the protocol retains sticky capital. This is a classic governance token discount — the protocol has utility, the token lacks near-term catalyst.</div>
+</div><div class="hp-alert hp-alert-medium">
+  <strong>Stablecoin Supply ($62.41B) vs. F&amp;G at 9</strong><span class="sev" style="color:#f97316">medium</span>
+  <div class="desc">Solana hosts $62.41B in stablecoins — a significant base of dry powder — while sentiment is at Extreme Fear. In prior cycles, this combination (high stable supply + fear capitulation) has preceded sharp recovery moves. The capital hasn&#x27;t left Solana; it&#x27;s de-risked into stables and waiting.</div>
+</div>
+    <div style="margin-top:20px">
+      <div class="section-head">Headlines</div>
+      <div class="hp-news-item">
+  <a href="https://messari.io/article/kelp-introducing-kusd-and-a-unique-commerce-backed-stablecoin-model" target="_blank" rel="noopener">Kelp: Introducing KUSD and a Unique Commerce-Backed Stablecoin Model</a>
+  <span class="hp-news-source">Messari</span>
+</div><div class="hp-news-item">
+  <a href="https://messari.io/article/understanding-pharos-a-comprehensive-overview" target="_blank" rel="noopener">Understanding Pharos: A Comprehensive Overview</a>
+  <span class="hp-news-source">Messari</span>
+</div><div class="hp-news-item">
+  <a href="https://solana.com/news/solana-developer-platform" target="_blank" rel="noopener">Solana Foundation Launches Solana Developer Platform</a>
+  <span class="hp-news-source">Solana Foundation</span>
+</div><div class="hp-news-item">
+  <a href="https://solana.com/news/case-study-takenos" target="_blank" rel="noopener">Reimagining Global Payroll with Takenos</a>
+  <span class="hp-news-source">Solana Foundation</span>
+</div><div class="hp-news-item">
+  <a href="https://solana.com/news/webinar-recap-corporate-treasury-onchain" target="_blank" rel="noopener">Webinar Recap: Corporate Treasury Onchain — 24/7 Global Liquidity</a>
+  <span class="hp-news-source">Solana Foundation</span>
+</div><div class="hp-news-item">
+  <a href="https://messari.io/article/a-valuation-of-polymarket-poly" target="_blank" rel="noopener">A Valuation of Polymarket (POLY)</a>
+  <span class="hp-news-source">Messari</span>
+</div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="hp-cta">
+  <a href="/dashboard" class="hp-cta-btn">Open Full Dashboard &rarr;</a>
+</div>
+
+<!-- NEWSLETTER -->
+<div class="hp-newsletter" id="newsletter">
+  <h2>Get This In Your Inbox</h2>
+  <div class="sub">Daily highlights + what matters in Solana. Every morning, before the market moves.</div>
+  <form class="hp-email-form" id="newsletter-form" onsubmit="return handleSubscribe(event)">
+    <input type="email" class="hp-email-input" placeholder="your@email.com" required id="newsletter-email">
+    <button type="submit" class="hp-email-btn">Subscribe</button>
+  </form>
+  <div id="newsletter-msg" style="margin-top:12px;font-size:0.85rem;display:none"></div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  solanaweekly.io &nbsp;&bull;&nbsp; Daily Solana Intelligence &nbsp;&bull;&nbsp; 2026-03-29 12:17 UTC
+</footer>
+
+<script>
+function handleSubscribe(e) {
+  e.preventDefault();
+  var email = document.getElementById('newsletter-email').value;
+  var msg = document.getElementById('newsletter-msg');
+  var btn = document.querySelector('.hp-email-btn');
+  btn.disabled = true;
+  btn.textContent = 'Subscribing...';
+  fetch('https://api.convertkit.com/v3/forms/9240695/subscribe', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      api_key: 'PvJNzxZ5JOLRr4pA0Mps2w',
+      email: email
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    msg.style.display = 'block';
+    if (data.subscription) {
+      msg.style.color = '#22c55e';
+      msg.textContent = 'You\'re in! Daily Solana intelligence, every morning.';
+      document.getElementById('newsletter-email').value = '';
+    } else {
+      msg.style.color = '#f97316';
+      msg.textContent = data.message || 'Something went wrong. Try again.';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Subscribe';
+  })
+  .catch(function() {
+    msg.style.display = 'block';
+    msg.style.color = '#ef4444';
+    msg.textContent = 'Network error. Please try again.';
+    btn.disabled = false;
+    btn.textContent = 'Subscribe';
+  });
+  return false;
+}
+</script>
+
+</body>
+</html>
