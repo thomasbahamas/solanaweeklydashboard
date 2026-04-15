@@ -76,13 +76,20 @@ def run() -> dict:
         log.error("No newsletter.json found — run generate_newsletter.py first")
         return {}
 
+    # Readiness gate — generate_newsletter sets `ready: False` when
+    # narrative is missing/errored so we don't ship debug strings.
+    if newsletter.get("ready") is False:
+        reason = newsletter.get("reason", "not ready")
+        log.error(f"Newsletter marked NOT ready — aborting send ({reason})")
+        return {"status": "skipped", "reason": reason}
+
     subject = newsletter.get("subject", "Solana Weekly")
     html_body = newsletter.get("html_body", "")
     text_body = newsletter.get("text_body", "")
 
     if not html_body:
         log.error("Newsletter has no HTML body")
-        return {}
+        return {"status": "skipped", "reason": "no html body"}
 
     log.info(f"Sending newsletter: {subject}")
 

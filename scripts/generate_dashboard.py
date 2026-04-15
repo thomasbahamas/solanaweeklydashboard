@@ -84,18 +84,24 @@ def svg_bar_chart_horiz(items, label_key, value_key, width=460, bar_h=22, fmt_fn
 
 
 def svg_monthly_returns(monthly_returns):
-    """Monthly return bar chart with year labels and gridlines."""
+    """Compact monthly return bar strip — last 18 months, minimal labels.
+
+    Designed to live below the primary SOL price chart as an at-a-glance
+    seasonality reference, not a hero chart. Tight bars, one-letter month
+    ticks on year boundaries, ± percentage baked into the bar tooltip.
+    """
     if not monthly_returns:
         return '<p class="muted">Collecting monthly return data...</p>'
-    items = monthly_returns[-24:]  # last 24 months
+    items = monthly_returns[-18:]  # last 18 months — tighter window
     month_names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-    bar_w = 32
-    gap = 5
-    left_pad = 45
-    h = 160
-    mid_y = 90
+    bar_w = 22
+    gap = 4
+    left_pad = 30
+    h = 92
+    mid_y = 44
+    max_half = 34
     max_abs = max((abs(m.get("return_pct", 0)) for m in items), default=1) or 1
-    scale = 55 / max_abs
+    scale = max_half / max_abs
     bars = []
     prev_year = ""
     for i, m in enumerate(items):
@@ -108,37 +114,37 @@ def svg_monthly_returns(monthly_returns):
         year = month_str[:4] if len(month_str) >= 4 else ""
         month_num = int(month_str[-2:]) if len(month_str) >= 2 and month_str[-2:].isdigit() else 0
         label = month_names[month_num - 1] if 1 <= month_num <= 12 else "?"
+        label_short = label[0] if label else "?"
 
-        # Year separator
         if year != prev_year and prev_year:
-            bars.append(f'<line x1="{x - gap // 2}" y1="10" x2="{x - gap // 2}" y2="{h - 10}" stroke="#27272a" stroke-width="1" stroke-dasharray="3,3"/>')
-        # Year label on first month of year or first item
+            bars.append(f'<line x1="{x - gap // 2}" y1="8" x2="{x - gap // 2}" y2="{h - 10}" stroke="#27272a" stroke-width="1" stroke-dasharray="2,3"/>')
         if year != prev_year:
-            bars.append(f'<text x="{x + bar_w // 2}" y="{h}" text-anchor="middle" fill="#9333ea" font-size="11" font-weight="600">{year}</text>')
+            bars.append(f'<text x="{x + bar_w // 2}" y="{h - 2}" text-anchor="middle" fill="#9333ea" font-size="9" font-weight="600">{year[-2:]}</text>')
         prev_year = year
 
         bars.append(
-            f'<rect x="{x}" y="{y:.0f}" width="{bar_w}" height="{max(3, bh):.0f}" fill="{color}" rx="3" opacity="0.85"/>'
-            f'<text x="{x + bar_w // 2}" y="{mid_y + 18}" text-anchor="middle" fill="#71717a" font-size="10">{label}</text>'
-            f'<text x="{x + bar_w // 2}" y="{y - 5 if ret >= 0 else y + bh + 13:.0f}" text-anchor="middle" fill="{color}" font-size="10" font-weight="600">{ret:+.1f}%</text>'
+            f'<rect x="{x}" y="{y:.0f}" width="{bar_w}" height="{max(2, bh):.0f}" fill="{color}" rx="2" opacity="0.9">'
+            f'<title>{year}-{month_num:02d}: {ret:+.1f}%</title></rect>'
+            f'<text x="{x + bar_w // 2}" y="{mid_y + 11}" text-anchor="middle" fill="#71717a" font-size="8">{label_short}</text>'
         )
-    total_w = len(items) * (bar_w + gap) + left_pad + 20
+    total_w = len(items) * (bar_w + gap) + left_pad + 10
 
-    # Gridlines and axis labels
-    grid = f'<line x1="{left_pad - 5}" y1="{mid_y}" x2="{total_w - 10}" y2="{mid_y}" stroke="#27272a" stroke-width="1"/>'
-    grid += f'<text x="{left_pad - 8}" y="{mid_y + 4}" text-anchor="end" fill="#71717a" font-size="9">0%</text>'
-    # Top/bottom reference lines
+    grid = f'<line x1="{left_pad - 4}" y1="{mid_y}" x2="{total_w - 6}" y2="{mid_y}" stroke="#27272a" stroke-width="1"/>'
+    grid += f'<text x="{left_pad - 6}" y="{mid_y + 3}" text-anchor="end" fill="#71717a" font-size="8">0</text>'
     top_val = int(max_abs)
-    grid += f'<line x1="{left_pad - 5}" y1="{mid_y - 55}" x2="{total_w - 10}" y2="{mid_y - 55}" stroke="#1e1e2e" stroke-width="1" stroke-dasharray="2,4"/>'
-    grid += f'<text x="{left_pad - 8}" y="{mid_y - 51}" text-anchor="end" fill="#71717a" font-size="9">+{top_val}%</text>'
-    grid += f'<line x1="{left_pad - 5}" y1="{mid_y + 55}" x2="{total_w - 10}" y2="{mid_y + 55}" stroke="#1e1e2e" stroke-width="1" stroke-dasharray="2,4"/>'
-    grid += f'<text x="{left_pad - 8}" y="{mid_y + 59}" text-anchor="end" fill="#71717a" font-size="9">-{top_val}%</text>'
+    grid += f'<text x="{left_pad - 6}" y="{mid_y - max_half + 3}" text-anchor="end" fill="#52525b" font-size="8">+{top_val}%</text>'
+    grid += f'<text x="{left_pad - 6}" y="{mid_y + max_half + 3}" text-anchor="end" fill="#52525b" font-size="8">-{top_val}%</text>'
 
-    return f'<svg width="100%" viewBox="0 0 {total_w} {h + 10}" xmlns="http://www.w3.org/2000/svg">{grid}{"".join(bars)}</svg>'
+    return f'<svg width="100%" viewBox="0 0 {total_w} {h}" style="max-height:100px" xmlns="http://www.w3.org/2000/svg">{grid}{"".join(bars)}</svg>'
 
 
-def svg_sparkline(points, width=120, height=32, color=None):
-    """7-day sparkline as inline SVG. Points is a list of floats."""
+def svg_sparkline(points, width=120, height=32, color=None, responsive=False):
+    """7-day sparkline as inline SVG. Points is a list of floats.
+
+    When `responsive` is True, the SVG scales to its container via width=100%
+    and preserveAspectRatio, which is what the hero technical chart uses.
+    Small inline cards (price grid) keep fixed dimensions.
+    """
     if not points or len(points) < 2:
         return ""
     n = len(points)
@@ -148,14 +154,34 @@ def svg_sparkline(points, width=120, height=32, color=None):
     w = width - pad * 2
     h = height - pad * 2
     coords = []
+    area_coords = [f"{pad},{pad + h:.1f}"]
     for i, p in enumerate(points):
         x = pad + (i / (n - 1)) * w
         y = pad + h - ((p - mn) / rng) * h
         coords.append(f"{x:.1f},{y:.1f}")
+        area_coords.append(f"{x:.1f},{y:.1f}")
+    area_coords.append(f"{pad + w:.1f},{pad + h:.1f}")
     polyline = " ".join(coords)
+    area = " ".join(area_coords)
     if not color:
         color = "var(--green)" if points[-1] >= points[0] else "var(--red)"
-    return f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" style="vertical-align:middle"><polyline points="{polyline}" fill="none" stroke="{color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    stroke_w = 2.5 if responsive else 1.5
+    fill_id = f"sg_{id(points) % 100000}"
+    if responsive:
+        return (
+            f'<svg width="100%" height="{height}" viewBox="0 0 {width} {height}" '
+            f'preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" '
+            f'style="display:block">'
+            f'<defs><linearGradient id="{fill_id}" x1="0" y1="0" x2="0" y2="1">'
+            f'<stop offset="0" stop-color="{color}" stop-opacity="0.25"/>'
+            f'<stop offset="1" stop-color="{color}" stop-opacity="0"/>'
+            f'</linearGradient></defs>'
+            f'<polygon points="{area}" fill="url(#{fill_id})"/>'
+            f'<polyline points="{polyline}" fill="none" stroke="{color}" '
+            f'stroke-width="{stroke_w}" stroke-linecap="round" stroke-linejoin="round"/>'
+            f'</svg>'
+        )
+    return f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" style="vertical-align:middle"><polyline points="{polyline}" fill="none" stroke="{color}" stroke-width="{stroke_w}" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
 
 def svg_range_bar(current, low, high, width=200, height=24):
@@ -277,10 +303,10 @@ def build_technical_panel(technicals, monthly_returns, sol_sparkline=None):
         elif ma50 < ma200:
             ma_context = '<span style="color:#f97316;font-size:0.78rem">Death cross (50MA below 200MA)</span>'
 
-    # 7-day price chart (larger version)
+    # 7-day price chart — hero element of this section, responsive width
     price_chart = ""
     if sol_sparkline and len(sol_sparkline) >= 2:
-        price_chart = svg_sparkline(sol_sparkline, width=400, height=80)
+        price_chart = svg_sparkline(sol_sparkline, width=760, height=220, responsive=True)
 
     # RSI gauge bar
     rsi_bar = ""
@@ -295,29 +321,35 @@ def build_technical_panel(technicals, monthly_returns, sol_sparkline=None):
   </div>
 </div>'''
 
-    return f'''<div class="panel-section">
-  <div class="grid grid-2" style="margin-bottom:20px">
+    hero_chart_block = ""
+    if price_chart:
+        hero_chart_block = f'''<div class="tech-hero">
+  <div class="tech-hero-header">
     <div>
-      <h3>SOL/USD <span style="font-size:1.4rem;font-weight:700">${price:,.2f}</span></h3>
-      {f'<div style="margin:12px 0">{price_chart}</div><div class="muted" style="font-size:0.7rem">7-day price action</div>' if price_chart else ''}
+      <div class="stat-label">SOL/USD</div>
+      <div class="tech-hero-price">${price:,.2f}</div>
     </div>
-    <div>
-      <div class="stats-row" style="margin-bottom:12px">
-        <div class="stat"><div class="stat-label">50-Day MA</div><div class="stat-value">{ma50_str}</div></div>
-        <div class="stat"><div class="stat-label">200-Day MA</div><div class="stat-value">{ma200_str}</div></div>
-      </div>
-      <div class="stats-row">
-        <div class="stat"><div class="stat-label">RSI (14)</div><div class="stat-value" style="color:{rsi_color}">{rsi}</div>{rsi_bar}</div>
-        <div class="stat"><div class="stat-label">MA Signal</div><div class="stat-value" style="font-size:1rem">{esc(str(signal))}</div>{ma_context}</div>
-      </div>
-    </div>
+    <div class="muted" style="font-size:0.72rem">7-day price action</div>
   </div>
-  <div style="margin-bottom:20px">
+  <div class="tech-hero-chart">{price_chart}</div>
+</div>'''
+
+    return f'''<div class="panel-section">
+  {hero_chart_block}
+  <div class="stats-row" style="margin-top:16px">
+    <div class="stat"><div class="stat-label">50-Day MA</div><div class="stat-value">{ma50_str}</div></div>
+    <div class="stat"><div class="stat-label">200-Day MA</div><div class="stat-value">{ma200_str}</div></div>
+    <div class="stat"><div class="stat-label">RSI (14)</div><div class="stat-value" style="color:{rsi_color}">{rsi}</div>{rsi_bar}</div>
+    <div class="stat"><div class="stat-label">MA Signal</div><div class="stat-value" style="font-size:0.95rem">{esc(str(signal))}</div>{ma_context}</div>
+  </div>
+  <div style="margin-top:16px">
     <span class="stat-label">52-Week Range</span>
     <div style="margin-top:6px">{range_svg if range_svg else f"${l52 or 0:,.0f} &mdash; ${h52 or 0:,.0f}"}</div>
   </div>
-  <h4>Monthly Returns</h4>
-  {monthly_svg}
+  <details class="collapse" style="margin-top:14px">
+    <summary>Monthly returns (last 18 months)</summary>
+    <div style="margin-top:6px;max-width:640px">{monthly_svg}</div>
+  </details>
 </div>'''
 
 
@@ -601,6 +633,89 @@ def build_hyperliquid_panel(hl):
     </div>
   </div>
   {listing_block}
+</div>'''
+
+
+def build_crossovers_panel(hyperliquid: dict, trending: list, prices: dict) -> str:
+    """Flag coins with multi-signal attention: trending on CoinGecko AND
+    active on Hyperliquid perps. These are the "both retail mindshare and
+    leveraged interest" plays — the asymmetric setups worth watching.
+
+    Returns empty string when nothing crosses over, so the section hides.
+    """
+    top_coins = (hyperliquid or {}).get("top_coins") or []
+    if not top_coins or not trending:
+        return ""
+
+    # Normalize: HL uses .name (ticker), CG trending uses .symbol.
+    # Build a quick lookup for HL coins by upper ticker.
+    hl_lookup = {}
+    for rank, c in enumerate(top_coins[:20], 1):
+        t = (c.get("name") or "").upper().strip()
+        if t:
+            hl_lookup[t] = {"rank": rank, "change_24h": c.get("change_24h"),
+                            "vlm_24h": c.get("day_ntl_vlm", 0) or 0,
+                            "funding": (c.get("funding") or 0) * 100}
+
+    # Walk trending and surface any overlap. Also enrich with spot
+    # price/change from market.prices where we have it.
+    rows = []
+    for t in trending[:15]:
+        sym = (t.get("symbol") or "").upper().strip()
+        if not sym or sym not in hl_lookup:
+            continue
+        hl = hl_lookup[sym]
+        mcap_rank = t.get("market_cap_rank")
+        spot = (prices or {}).get(sym, {}) if prices else {}
+        spot_chg = spot.get("change_24h") if isinstance(spot, dict) else None
+        chg = spot_chg if spot_chg is not None else hl.get("change_24h")
+        rows.append({
+            "symbol": sym,
+            "mcap_rank": mcap_rank,
+            "hl_rank": hl["rank"],
+            "change_24h": chg,
+            "hl_vlm": hl["vlm_24h"],
+            "funding": hl["funding"],
+        })
+
+    if not rows:
+        return ""
+
+    # Sort strongest signal first: low HL rank = higher perp volume.
+    rows.sort(key=lambda r: r["hl_rank"])
+
+    body = ""
+    for r in rows:
+        mcap_str = f"#{r['mcap_rank']}" if r["mcap_rank"] else "—"
+        fund = r["funding"]
+        fund_color = "var(--red)" if fund > 0 else "var(--green)"
+        body += (
+            f'<tr>'
+            f'<td><strong>{esc(r["symbol"])}</strong></td>'
+            f'<td style="color:var(--muted)">{mcap_str}</td>'
+            f'<td style="color:#06b6d4">#{r["hl_rank"]}</td>'
+            f'<td>{fmt_change(r["change_24h"])}</td>'
+            f'<td>{fmt_usd(r["hl_vlm"])}</td>'
+            f'<td style="color:{fund_color}">{fund:+.4f}%</td>'
+            f'</tr>'
+        )
+
+    return f'''<div class="panel-section">
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px">
+    Coins trending on CoinGecko <strong style="color:var(--accent)">AND</strong> ranking in Hyperliquid's top 20 by perp volume —
+    the setups where retail attention and leveraged positioning are both present.
+  </div>
+  <table>
+    <tr>
+      <th>Coin</th>
+      <th>Mcap Rank</th>
+      <th>HL Rank</th>
+      <th>24h</th>
+      <th>HL Vol 24h</th>
+      <th>Funding/hr</th>
+    </tr>
+    {body}
+  </table>
 </div>'''
 
 
@@ -1066,6 +1181,70 @@ def build_signal_panel(signal):
     return f'<div class="panel-section">{"".join(parts)}</div>'
 
 
+def build_backtest_strip(tracker: dict) -> str:
+    """Small results strip that sits atop the trade section.
+
+    Hits the front page message traders care about: "how have past calls
+    actually done?" Empty-safely returns nothing until history accumulates.
+    """
+    if not tracker:
+        return ""
+    scored = tracker.get("scored_calls") or 0
+    if scored == 0:
+        return (
+            '<div style="background:#1a1425;border:1px solid #2d2640;'
+            'border-radius:6px;padding:10px 14px;margin-bottom:16px;'
+            'font-size:0.78rem;color:#a1a1aa">'
+            'Trade-call tracking active — backtest stats appear once entries age into scorable returns.'
+            '</div>'
+        )
+
+    hit = tracker.get("hit_rate_pct")
+    avg = tracker.get("avg_return_pct")
+    best = tracker.get("best_call") or {}
+    worst = tracker.get("worst_call") or {}
+
+    def _cell(label, value, color=None):
+        style = f"color:{color}" if color else ""
+        return (
+            f'<div style="flex:1;min-width:110px">'
+            f'<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">{label}</div>'
+            f'<div style="font-size:1rem;font-weight:700;margin-top:2px;{style}">{value}</div>'
+            f'</div>'
+        )
+
+    def _pnl_str(pnl):
+        if pnl is None:
+            return "—", None
+        color = "var(--green)" if pnl >= 0 else "var(--red)"
+        return f"{pnl:+.1f}%", color
+
+    avg_str, avg_color = _pnl_str(avg)
+    best_pnl_str, best_color = _pnl_str(best.get("pnl_pct"))
+    worst_pnl_str, worst_color = _pnl_str(worst.get("pnl_pct"))
+    hit_str = f"{hit:.0f}%" if hit is not None else "—"
+
+    best_label = (
+        f"{esc(best.get('ticker',''))}  <span style='font-size:0.7rem;color:var(--muted)'>{best_pnl_str}</span>"
+        if best.get("ticker") else "—"
+    )
+    worst_label = (
+        f"{esc(worst.get('ticker',''))}  <span style='font-size:0.7rem;color:var(--muted)'>{worst_pnl_str}</span>"
+        if worst.get("ticker") else "—"
+    )
+
+    return f'''<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent);font-weight:700;margin-bottom:10px">Track Record — last 90 days</div>
+  <div style="display:flex;gap:14px;flex-wrap:wrap">
+    {_cell("Scored Calls", str(scored))}
+    {_cell("Hit Rate", hit_str)}
+    {_cell("Avg Return", avg_str, avg_color)}
+    {_cell("Best", best_label, best_color)}
+    {_cell("Worst", worst_label, worst_color)}
+  </div>
+</div>'''
+
+
 def build_trade_panel(trade):
     """Build the 'So, what's the trade?' panel."""
     if not trade or not trade.get("macro"):
@@ -1150,8 +1329,8 @@ def build_briefing_panel(briefing):
         return ""
     return f'''<div class="panel-section">
   <div class="brief-header">
-    <span class="muted">~3-4 min read</span>
-    <button class="copy-btn" onclick="copyBriefing()">Copy full script</button>
+    <span class="muted">~3-4 min read &middot; for video/podcast voiceover</span>
+    <button class="copy-btn" type="button" onclick="copyBriefing(this)">Copy full script</button>
   </div>
   <pre class="briefing-box" id="briefing-text">{esc(briefing)}</pre>
 </div>'''
@@ -1331,6 +1510,21 @@ td { padding: 7px 6px; border-bottom: 1px solid var(--border); }
 
 /* Technical */
 .tech-row { display: flex; gap: 32px; flex-wrap: wrap; margin-top: 8px; }
+.tech-hero {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 16px 10px;
+}
+.tech-hero-header {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-bottom: 8px;
+}
+.tech-hero-price { font-size: 1.8rem; font-weight: 700; margin-top: 2px; }
+.tech-hero-chart { height: 220px; }
+.tech-hero-chart svg { width: 100%; height: 100%; }
+@media (max-width: 640px) {
+  .tech-hero-chart { height: 150px; }
+  .tech-hero-price { font-size: 1.4rem; }
+}
 
 /* Trending */
 .trending-row { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1384,6 +1578,25 @@ details.collapse summary::before { content: '\\25B6  '; font-size: 0.6rem; trans
 details.collapse[open] summary::before { transform: rotate(90deg); }
 details.collapse > div { padding-top: 8px; }
 
+/* Briefing script */
+.brief-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px; font-size: 0.78rem;
+}
+.brief-header .muted { color: var(--muted); }
+.briefing-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  padding: 14px 16px; font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  font-size: 0.82rem; line-height: 1.65; color: var(--text);
+  white-space: pre-wrap; word-wrap: break-word; max-height: 380px; overflow-y: auto;
+}
+.copy-btn {
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border-heavy);
+  padding: 5px 12px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;
+  cursor: pointer; text-transform: uppercase; letter-spacing: 0.4px;
+}
+.copy-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
 /* Source links */
 .section-sources { font-size: 0.7rem; margin-bottom: 12px; color: var(--muted); }
 .section-sources a { color: var(--muted); text-decoration: none; }
@@ -1398,15 +1611,41 @@ footer a:hover { text-decoration: underline; }
 
 /* Responsive */
 @media (max-width: 768px) {
+  body { padding: 8px; }
   .grid-2, .grid-3, .section-cols, .section-cols-3 { grid-template-columns: 1fr; }
   .grid-prices { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
   .stats-row { flex-direction: column; gap: 12px; }
   .header { flex-direction: column; gap: 8px; align-items: flex-start; }
-  .section-nav a { padding: 10px 14px; font-size: 0.75rem; }
+  .header-right { flex-wrap: wrap; gap: 10px; }
+  .section-nav { margin: 0 -8px; padding: 0 8px; }
+  .section-nav a { padding: 10px 12px; font-size: 0.72rem; }
   .tech-row { flex-direction: column; }
   .market-top { flex-direction: column; }
   .fg-hero { width: 100%; flex-direction: row; gap: 16px; justify-content: center; }
   .back-top { bottom: 16px; right: 16px; }
+  /* Tables: let them scroll horizontally rather than squish */
+  .section-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 480px; font-size: 0.78rem; }
+  th, td { padding: 6px 4px; }
+  .section { padding: 12px; }
+  .section-title { font-size: 0.85rem; }
+  h1 { font-size: 1.3rem !important; letter-spacing: 1px !important; }
+}
+@media (max-width: 480px) {
+  body { padding: 6px; font-size: 0.92rem; }
+  .header-left h1 { font-size: 1.2rem; letter-spacing: 1px; }
+  .header-left .meta { font-size: 0.7rem; }
+  .section-nav a { padding: 9px 10px; font-size: 0.68rem; }
+  .grid-prices { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .price-card { padding: 8px 10px; }
+  .price-card .price-name { font-size: 0.75rem; }
+  .price-card .price-val { font-size: 0.95rem; }
+  .section { padding: 10px; }
+  .fg-hero { gap: 10px; }
+  .stat-value { font-size: 1rem; }
+  .stat-label { font-size: 0.65rem; }
+  .whale-meta { flex-wrap: wrap; gap: 8px; }
+  table { min-width: 380px; font-size: 0.72rem; }
 }
 """
 
@@ -1432,9 +1671,19 @@ function toggleSection(id) {
   }
   localStorage.setItem('sw-collapsed', JSON.stringify(collapsed));
 }
-// Restore collapsed state on load
+// Restore collapsed state on load — merge in default-collapsed sections
+// for first-time visitors so long/dense panels don't dominate above the fold.
 (function() {
+  var DEFAULTS = {'briefing': true};
+  var DEFAULTS_KEY = 'sw-defaults-v1';
   var collapsed = JSON.parse(localStorage.getItem('sw-collapsed') || '{}');
+  if (!localStorage.getItem(DEFAULTS_KEY)) {
+    for (var k in DEFAULTS) {
+      if (DEFAULTS.hasOwnProperty(k) && !(k in collapsed)) collapsed[k] = true;
+    }
+    localStorage.setItem('sw-collapsed', JSON.stringify(collapsed));
+    localStorage.setItem(DEFAULTS_KEY, '1');
+  }
   for (var id in collapsed) {
     if (!collapsed.hasOwnProperty(id)) continue;
     var body = document.getElementById('body-' + id);
@@ -1476,6 +1725,29 @@ function dashSubscribe(e) {
     btn.disabled = false; btn.textContent = 'Subscribe';
   });
   return false;
+}
+
+// Copy briefing script to clipboard
+function copyBriefing(btn) {
+  var el = document.getElementById('briefing-text');
+  if (!el) return;
+  var text = el.innerText || el.textContent || '';
+  var done = function() {
+    var orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.disabled = true;
+    setTimeout(function() { btn.textContent = orig; btn.disabled = false; }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {});
+    return;
+  }
+  // Fallback
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) {}
+  document.body.removeChild(ta);
 }
 
 // Scroll-spy: highlight active section in nav
@@ -1790,13 +2062,39 @@ def build_homepage(compiled: dict, narrative: dict) -> str:
     except Exception:
         date_display = generated_at[:10]
 
+    # Social share / SEO metadata — dynamic per-day from today's data
+    hp_tldr = ((narrative or {}).get("newsletter_tldr") or "").strip()
+    if not hp_tldr:
+        hp_tldr = (context.split(".")[0][:200] + ".") if context else "Daily Solana ecosystem intelligence."
+    hp_og_title = f"Solana Weekly — {date_display}"
+    hp_og_description = hp_tldr[:220]
+    hp_og_image = "https://solanaweekly.io/og.png"
+    hp_page_url = "https://solanaweekly.io/"
+
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Solana Weekly — Daily Solana Intelligence</title>
-<meta name="description" content="Daily Solana ecosystem intelligence. Key metrics, market analysis, divergence alerts, and top stories delivered to your inbox every morning.">
+<meta name="description" content="{esc(hp_og_description)}">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Solana Weekly">
+<meta property="og:url" content="{hp_page_url}">
+<meta property="og:title" content="{esc(hp_og_title)}">
+<meta property="og:description" content="{esc(hp_og_description)}">
+<meta property="og:image" content="{hp_og_image}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{esc(hp_og_title)}">
+<meta name="twitter:description" content="{esc(hp_og_description)}">
+<meta name="twitter:image" content="{hp_og_image}">
+
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%239333ea'/%3E%3Ctext x='16' y='23' font-family='Arial,sans-serif' font-size='22' font-weight='900' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
 <style>{HOMEPAGE_CSS}</style>
 </head>
@@ -2044,6 +2342,18 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     except Exception:
         pass
 
+    # Baseline-establishing banner: shown when WoW has no signal yet,
+    # so new visitors understand why delta labels say "collecting".
+    baseline_banner = ""
+    if not wow or all(v == 0 for v in wow.values()):
+        baseline_banner = (
+            '<div style="background:#1a1425;border:1px solid #2d2640;border-left:3px solid #9333ea;'
+            'border-radius:6px;padding:10px 14px;margin:12px auto 0;max-width:1200px;'
+            'font-size:0.8rem;color:#a1a1aa;">'
+            'WoW baseline establishing — daily deltas will populate after the next full run.'
+            '</div>'
+        )
+
     # Build all sections; skip empty ones
     # Each entry: (id, nav_label, html)
     sections = []
@@ -2089,6 +2399,15 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
             'Source: <a href="https://app.hyperliquid.xyz/trade" target="_blank">Hyperliquid</a>',
             hl_panel,
             hl_fresh,
+        )))
+
+    crossover_panel = build_crossovers_panel(hyperliquid, trending, prices)
+    if crossover_panel:
+        sections.append(("crossovers", "Crossovers", _wrap_section(
+            "crossovers", "Multi-Signal Crossovers",
+            'Sources: <a href="https://www.coingecko.com/en/trending" target="_blank">CoinGecko Trending</a> &middot; <a href="https://app.hyperliquid.xyz/trade" target="_blank">Hyperliquid</a>',
+            crossover_panel,
+            market_fresh,
         )))
 
     sections.append(("protocols", "Protocols", _wrap_section(
@@ -2145,17 +2464,46 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     )))
 
     trade_thesis = narrative.get("trade_thesis", {})
-    trade_html = _section_if(build_trade_panel(trade_thesis), "trade", "So, What's the Trade?")
-    if trade_html:
-        sections.append(("trade", "Trade", trade_html))
+    trade_tracker = load_json("trade_history.json") or {}
+    tracker_summary = trade_tracker.get("summary") if isinstance(trade_tracker, dict) else None
+    trade_panel_html = build_trade_panel(trade_thesis)
+    if trade_panel_html:
+        strip = build_backtest_strip(tracker_summary or {})
+        combined = f"{strip}{trade_panel_html}"
+        trade_html = _section_if(combined, "trade", "So, What's the Trade?")
+        if trade_html:
+            sections.append(("trade", "Trade", trade_html))
 
     sections.append(("news", "News", _wrap_section(
         "news", "News Feed", "", build_news_panel(news), news_fresh,
     )))
 
+    briefing_text = narrative.get("briefing_script", "") or ""
+    briefing_html = build_briefing_panel(briefing_text)
+    if briefing_html:
+        sections.append(("briefing", "Briefing", _wrap_section(
+            "briefing", "Daily Briefing Script",
+            'Written by Claude for video/podcast voiceover',
+            briefing_html,
+            market_fresh,
+        )))
+
     # Build nav dynamically from active sections
     nav_links = "".join(f'<a href="#{sid}">{label}</a>' for sid, label, _ in sections)
     body_sections = "\n".join(html for _, _, html in sections)
+
+    # --- Social share / SEO metadata ---
+    # Pull the TLDR and a one-line data summary so OG/Twitter cards and
+    # search snippets reflect today's actual content, not a static tagline.
+    tldr = (narrative.get("newsletter_tldr") or "").strip()
+    if not tldr:
+        ctx = (signal.get("market_context") or "").strip() if signal else ""
+        tldr = (ctx.split(".")[0][:200] + ".") if ctx else "Daily Solana ecosystem intelligence."
+    og_title = f"Solana Weekly — {generated_at[:10]}"
+    og_description = tldr[:220]
+    # The OG image is regenerated each run by generate_og_image.py → output/og.png
+    og_image_url = "https://solanaweekly.io/og.png"
+    page_url = "https://solanaweekly.io/dashboard"
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -2163,6 +2511,24 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Solana Weekly Dashboard</title>
+<meta name="description" content="{esc(og_description)}">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Solana Weekly">
+<meta property="og:url" content="{page_url}">
+<meta property="og:title" content="{esc(og_title)}">
+<meta property="og:description" content="{esc(og_description)}">
+<meta property="og:image" content="{og_image_url}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{esc(og_title)}">
+<meta name="twitter:description" content="{esc(og_description)}">
+<meta name="twitter:image" content="{og_image_url}">
+
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%239333ea'/%3E%3Ctext x='16' y='23' font-family='Arial,sans-serif' font-size='22' font-weight='900' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
 <style>{CSS}</style>
 </head>
@@ -2183,7 +2549,7 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
 </div>
 
 <nav class="section-nav">{nav_links}</nav>
-
+{baseline_banner}
 <div class="nl-banner">
   <div class="nl-text"><strong>Get daily Solana intelligence in your inbox.</strong> Key numbers + what they mean, every morning.</div>
   <form class="nl-form" id="dash-nl-form" onsubmit="return dashSubscribe(event)">

@@ -38,9 +38,9 @@ RULES:
 MARKET MAKER ACTIVITY INSTRUCTIONS:
 - Analyze the news for any mentions of institutional firms, market makers, large funds
 - Firms to watch: Galaxy Digital, Jump Trading, Wintermute, Jane Street, Citadel, Multicoin Capital, a16z, Paradigm, Pantera, Alameda successors
-- Generate 2-5 signals based on what you find in the news
-- If no institutional news, generate signals based on market structure (e.g., "Market makers likely hedging amid low volatility")
-- Include Arkham-style analysis of positioning
+- Only emit a signal if it is DIRECTLY supported by a news headline in the provided data. Quote the source headline in the `detail` field.
+- Do NOT fabricate firm activity when no news exists. Return an EMPTY `signals` array rather than inventing positioning. Credibility depends on this.
+- Include Arkham-style analysis ONLY when on-chain flow is referenced in the provided data
 
 TRENDING NARRATIVES INSTRUCTIONS:
 - trending_narratives: Identify 4-6 emerging narrative threads from the combined data and news. These should be data-driven observations, not attributed to any specific person or account.
@@ -59,8 +59,18 @@ BRIEFING SCRIPT INSTRUCTIONS:
 - Include a [SEGMENT 5: CT PULSE] section that covers trending narratives and notable takes
 - Keep the script readable in 3-4 minutes
 
+NEWSLETTER TLDR INSTRUCTIONS:
+- `newsletter_tldr` is the single line that will open the daily email to thousands of traders.
+- 1-2 sentences. Maximum 240 characters. No emojis. No "NFA". Punchy.
+- It MUST name a specific number, token, or event from today's data — not generic commentary.
+- Good: "Solana TVL crossed $9B for the first time since June while SOL price lags BTC by 4pts — leverage is still cheap."
+- Bad: "Markets are mixed today with some interesting action across the board."
+- `newsletter_preheader` is the Gmail preview text (≤90 chars). Tease the data without repeating the TLDR verbatim.
+
 OUTPUT FORMAT: Return valid JSON with these keys:
 {
+  "newsletter_tldr": "1-2 sentence data-forward hook for the daily email (<=240 chars)",
+  "newsletter_preheader": "Gmail preview text (<=90 chars)",
   "the_signal": {
     "market_context": "2-3 paragraph market analysis",
     "divergence_alerts": [

@@ -45,12 +45,18 @@ def main():
     log.info("=" * 60)
     total_start = time.time()
 
-    # Quick market-only refresh: fetch prices, recompile, regenerate dashboard
+    # Quick market-only refresh: fetch prices, recompile (without
+    # clobbering the WoW baseline), regenerate dashboard.
     if args.market_only:
         log.info("MARKET-ONLY REFRESH")
         log.info("=" * 60)
         run_step("Fetch Market Data", "fetch_market")
-        run_step("Compile Data", "compile_data")
+        # Can't use run_step's __import__().run() here because we need a kwarg.
+        try:
+            import compile_data as _cd
+            _cd.run(save_baseline=False)
+        except Exception as e:
+            log.error(f"  ✗ Compile Data failed: {e}")
         run_step("Generate Dashboard", "generate_dashboard")
         total_elapsed = time.time() - total_start
         log.info("")
@@ -98,8 +104,15 @@ def main():
     else:
         log.info("Skipping AI narrative (--no-ai flag)")
 
+    # Step 3.5: Track and score trade picks over time (no extra API calls —
+    # uses compiled market prices to anchor entries and score history).
+    run_step("Track Trade Picks", "track_trades")
+
     # Step 4: Generate dashboard
     run_step("Generate Dashboard", "generate_dashboard")
+
+    # Step 4.5: Generate OG share card PNG (reads narrative.json + compiled.json)
+    run_step("Generate OG Image", "generate_og_image")
 
     # Step 5: Generate newsletter draft
     run_step("Generate Newsletter", "generate_newsletter")

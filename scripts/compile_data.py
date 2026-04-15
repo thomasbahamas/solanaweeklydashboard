@@ -132,7 +132,13 @@ def compute_wow(current: dict, previous: dict) -> dict:
     return wow
 
 
-def run() -> dict:
+def run(save_baseline: bool = True) -> dict:
+    """Compile data and compute WoW deltas against the last full run.
+
+    Pass `save_baseline=False` from market-only refreshes so WoW stays
+    anchored to the daily full-pipeline snapshot instead of slipping
+    to "delta since 4 hours ago".
+    """
     log.info("Compiling data...")
 
     previous = load_previous()
@@ -170,9 +176,13 @@ def run() -> dict:
 
     save_json(compiled, "compiled.json")
 
-    # Save as previous for next run
-    save_previous(compiled)
-    log.info(f"Compiled data saved (Run #{run_number}).")
+    # Save as previous for next DAILY run. Market-only refreshes pass
+    # save_baseline=False so a 4h cron doesn't overwrite the 24h anchor.
+    if save_baseline:
+        save_previous(compiled)
+        log.info(f"Compiled data saved (Run #{run_number}) — baseline refreshed.")
+    else:
+        log.info(f"Compiled data saved (Run #{run_number}) — baseline preserved (market-only refresh).")
     return compiled
 
 

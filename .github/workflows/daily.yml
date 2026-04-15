@@ -2,9 +2,10 @@ name: Solana Weekly Dashboard
 
 on:
   schedule:
-    # Full pipeline daily at 5:00 AM PT (12:00 UTC)
-    - cron: '0 12 * * *'
-    # Market-only refresh every 4h (0, 4, 8, 16, 20 UTC — skip 12 UTC which is the full run)
+    # Full pipeline daily at 4:30 AM PT (11:30 UTC). GitHub cron can drift
+    # 5-15 min, so this reliably finishes before Torrey's 5:30 AM checkin.
+    - cron: '30 11 * * *'
+    # Market-only refresh every 4h (0, 4, 8, 16, 20 UTC — skip 12 UTC band which is the full run)
     - cron: '0 0,4,8,16,20 * * *'
   workflow_dispatch:
     inputs:
