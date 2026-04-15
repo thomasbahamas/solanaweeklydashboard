@@ -182,7 +182,7 @@ def svg_range_bar(current, low, high, width=200, height=24):
 
 def build_market_panel(prices, global_data, fg, wow):
     price_cards = ""
-    order = ["BTC", "ETH", "SOL", "JTO", "BONK", "HYPE", "HNT", "ZEC"]
+    order = ["BTC", "ETH", "SOL", "JTO", "BONK", "HYPE", "HNT", "RNDR", "ZEC"]
     for ticker in order:
         if ticker not in prices:
             continue
@@ -248,8 +248,12 @@ def build_market_panel(prices, global_data, fg, wow):
 
 def build_technical_panel(technicals, monthly_returns, sol_sparkline=None):
     price = technicals.get("price") or 0
-    ma50 = technicals.get("ma_50") or 0
-    ma200 = technicals.get("ma_200") or 0
+    ma50_raw = technicals.get("ma_50")
+    ma200_raw = technicals.get("ma_200")
+    ma50 = ma50_raw or 0
+    ma200 = ma200_raw or 0
+    ma50_str = f"${ma50:,.2f}" if ma50_raw else "—"
+    ma200_str = f"${ma200:,.2f}" if ma200_raw else "—"
     rsi = technicals.get("rsi_14") or "N/A"
     signal = technicals.get("ma_signal") or "N/A"
     h52 = technicals.get("high_52w")
@@ -299,8 +303,8 @@ def build_technical_panel(technicals, monthly_returns, sol_sparkline=None):
     </div>
     <div>
       <div class="stats-row" style="margin-bottom:12px">
-        <div class="stat"><div class="stat-label">50-Day MA</div><div class="stat-value">${ma50:,.2f}</div></div>
-        <div class="stat"><div class="stat-label">200-Day MA</div><div class="stat-value">${ma200:,.2f}</div></div>
+        <div class="stat"><div class="stat-label">50-Day MA</div><div class="stat-value">{ma50_str}</div></div>
+        <div class="stat"><div class="stat-label">200-Day MA</div><div class="stat-value">{ma200_str}</div></div>
       </div>
       <div class="stats-row">
         <div class="stat"><div class="stat-label">RSI (14)</div><div class="stat-value" style="color:{rsi_color}">{rsi}</div>{rsi_bar}</div>
@@ -398,6 +402,17 @@ def build_solana_panel(solana, wow):
     tps_nv = network.get("tps_non_vote", "N/A")
     vote_pct = network.get("vote_pct", 0)
 
+    # Hide the Perp DEX Volume stat unless we have real volume data
+    # (DeFiLlama gated derivatives /overview endpoint behind Pro)
+    perp_source = dex.get("perp_source", "volume")
+    perp_stat_html = (
+        f'''<div class="stat"><div class="stat-label">Perp DEX Volume</div>
+      <div class="stat-value">{fmt_usd(dex.get("perp_24h",0))}</div>
+      <div>{fmt_wow(wow, "dex_volume")}</div>
+    </div>'''
+        if perp_source == "volume" else ""
+    )
+
     return f'''<div class="panel-section">
   <h4>Primary Ecosystem</h4>
   <div class="stats-row">
@@ -410,10 +425,7 @@ def build_solana_panel(solana, wow):
       <div class="stat-value">{fmt_usd(dex.get("spot_24h",0))}</div>
       <div>{fmt_change(dex.get("spot_change_1d"))} 24h</div>
     </div>
-    <div class="stat"><div class="stat-label">Perp DEX Volume</div>
-      <div class="stat-value">{fmt_usd(dex.get("perp_24h",0))}</div>
-      <div>{fmt_wow(wow, "dex_volume")}</div>
-    </div>
+    {perp_stat_html}
     <div class="stat"><div class="stat-label">Fees 24h</div>
       <div class="stat-value">{fmt_usd(fees.get("total_24h",0))}</div>
       <div>{fmt_change(fees.get("change_1d"))}</div>
@@ -450,18 +462,35 @@ def build_dex_panel(dex):
     spot_rows = ""
     for d in dex.get("top_spot", [])[:15]:
         spot_rows += f'<tr><td>{esc(d["name"])}</td><td>{fmt_usd(d["volume_24h"])}</td><td>{fmt_change(d.get("change_1d"))}</td></tr>'
+
+    # DeFiLlama gated their derivatives volume endpoint behind Pro; we fall
+    # back to a TVL-based ranking. Use `perp_source` to label the table
+    # correctly so the reader knows TVL ≠ Volume.
+    perp_source = dex.get("perp_source", "volume")
     perp_rows = ""
     for d in dex.get("top_perps", [])[:10]:
         perp_rows += f'<tr><td>{esc(d["name"])}</td><td>{fmt_usd(d["volume_24h"])}</td><td>{fmt_change(d.get("change_1d"))}</td></tr>'
 
     spot_cov = dex.get("spot_coverage_pct", 0)
     perp_cov = dex.get("perp_coverage_pct", 0)
+    perp_header = "Top Perp DEXes (by TVL)" if perp_source == "tvl" else "Top Perp DEXes"
+    perp_col = "TVL" if perp_source == "tvl" else "Volume 24h"
+
+    # Hide the Perp DEX 24h stat when we couldn't get real volume data
+    perp_stat = (
+        f'<div class="stat"><div class="stat-label">Perp DEX 24h</div><div class="stat-value">{fmt_usd(dex.get("perp_24h",0))}</div></div>'
+        if perp_source == "volume" else ""
+    )
+    combined_stat = (
+        f'<div class="stat"><div class="stat-label">Combined 24h</div><div class="stat-value">{fmt_usd(dex.get("combined_24h",0))}</div></div>'
+        if perp_source == "volume" else ""
+    )
 
     return f'''<div class="panel-section">
   <div class="stats-row">
     <div class="stat"><div class="stat-label">Spot DEX 24h</div><div class="stat-value">{fmt_usd(dex.get("spot_24h",0))}</div><div>{fmt_change(dex.get("spot_change_1d"))} 1d</div></div>
-    <div class="stat"><div class="stat-label">Perp DEX 24h</div><div class="stat-value">{fmt_usd(dex.get("perp_24h",0))}</div></div>
-    <div class="stat"><div class="stat-label">Combined 24h</div><div class="stat-value">{fmt_usd(dex.get("combined_24h",0))}</div></div>
+    {perp_stat}
+    {combined_stat}
   </div>
   <details class="collapse">
     <summary>Individual DEX breakdown</summary>
@@ -471,8 +500,8 @@ def build_dex_panel(dex):
         <table><tr><th>Protocol</th><th>Volume 24h</th><th>Chg 1d</th></tr>{spot_rows}</table>
       </div>
       <div>
-        <h4>Top Perp DEXes{f" ({perp_cov}% of total)" if perp_cov else ""}</h4>
-        <table><tr><th>Protocol</th><th>Volume 24h</th><th>Chg 1d</th></tr>{perp_rows}</table>
+        <h4>{perp_header}{f" ({perp_cov}% of total)" if perp_cov and perp_source == "volume" else ""}</h4>
+        <table><tr><th>Protocol</th><th>{perp_col}</th><th>Chg 1d</th></tr>{perp_rows}</table>
       </div>
     </div>
   </details>
@@ -633,36 +662,30 @@ def build_upgrades_panel(upgrades):
         versions_html = f'''<h4 style="margin-top:20px">Top Versions by Stake</h4>
 <table><tr><th>Version</th><th>Client</th><th>Stake %</th></tr>{rows}</table>'''
 
-    # --- Infrastructure cards ---
-    infra = upgrades.get("infrastructure", {})
-    # Only show non-client infra cards (DoubleZero, Alpenglow, Harmonic)
-    infra_cards = ""
-    for key in ["doublezero", "alpenglow", "harmonic"]:
-        item = infra.get(key)
+    # --- Roadmap (upcoming infrastructure, no live metrics) ---
+    # Rendered as a compact list, not metric-style cards, so it doesn't look
+    # dead when there's nothing to report yet.
+    roadmap = upgrades.get("roadmap", [])
+    roadmap_rows = ""
+    for item in roadmap:
         if not item:
             continue
-        metric_html = ""
-        if item.get("metric_value"):
-            metric_html = f'<div class="stat-value" style="font-size:1.1rem">{esc(str(item["metric_value"]))}</div>'
-            if item.get("metric_detail"):
-                metric_html += f'<div class="muted">{esc(item["metric_detail"])}</div>'
-
         status = item.get("status", "Unknown")
-        status_color = "var(--green)" if "live" in status.lower() or "active" in status.lower() else "#eab308" if "development" in status.lower() else "var(--muted)"
-
-        url_attr = f' href="{esc(item["url"])}" target="_blank" rel="noopener"' if item.get("url") else ""
-        name_tag = f"<a{url_attr} style='color:var(--text);text-decoration:none'>{esc(item['name'])}</a>" if url_attr else esc(item["name"])
-
-        infra_cards += f'''<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:start">
-    <div>
-      <div style="font-weight:600;font-size:0.9rem">{name_tag}</div>
-      <div class="muted" style="font-size:0.78rem;margin-top:2px">{esc(item["description"])}</div>
-    </div>
-    <span style="color:{status_color};font-size:0.7rem;font-weight:600;text-transform:uppercase;white-space:nowrap;margin-left:12px">{esc(status)}</span>
-  </div>
-  {f'<div style="margin-top:8px">{metric_html}</div>' if metric_html else ''}
+        status_color = (
+            "var(--green)" if "live" in status.lower() or "active" in status.lower()
+            else "#eab308" if "development" in status.lower()
+            else "var(--muted)"
+        )
+        url = item.get("url")
+        name_tag = (
+            f'<a href="{esc(url)}" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;font-weight:600">{esc(item["name"])}</a>'
+            if url else f'<span style="font-weight:600">{esc(item["name"])}</span>'
+        )
+        roadmap_rows += f'''<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem;gap:12px">
+  <div style="flex:1;min-width:0">{name_tag} <span class="muted" style="font-size:0.78rem">— {esc(item.get("description",""))}</span></div>
+  <span style="color:{status_color};font-size:0.7rem;font-weight:600;text-transform:uppercase;white-space:nowrap">{esc(status)}</span>
 </div>'''
+    infra_cards = roadmap_rows  # Preserve variable name for downstream assembly
 
     # --- SIMDs ---
     simds = upgrades.get("simds", {})
@@ -713,7 +736,7 @@ def build_upgrades_panel(upgrades):
     if versions_html:
         details_parts.append(f'<details class="collapse"><summary>Client versions</summary><div>{versions_html}</div></details>')
     if infra_cards:
-        details_parts.append(f'<details class="collapse"><summary>Infrastructure &amp; upcoming upgrades</summary><div class="grid grid-3" style="margin-top:8px">{infra_cards}</div></details>')
+        details_parts.append(f'<details class="collapse"><summary>Upcoming upgrades &amp; roadmap</summary><div style="margin-top:8px">{infra_cards}</div></details>')
 
     simd_detail = ""
     if simd_rows:

@@ -22,6 +22,7 @@ PAPRIKA_IDS = {
     "hyperliquid": "hype-hyperliquid",
     "helium": "hnt-helium",
     "zcash": "zec-zcash",
+    "render-token": "rndr-render-token",
 }
 
 
@@ -161,13 +162,19 @@ def _fetch_trending_coingecko() -> list | None:
     if not data or "coins" not in data:
         return None
     trending = []
-    for item in data["coins"][:10]:
+    for item in data["coins"]:
         c = item["item"]
+        rank = c.get("market_cap_rank")
+        # Drop unranked and obscure tokens (keep top-100 only)
+        if not isinstance(rank, int) or rank > 100:
+            continue
         trending.append({
             "name": c["name"],
             "symbol": c["symbol"],
-            "market_cap_rank": c.get("market_cap_rank"),
+            "market_cap_rank": rank,
         })
+        if len(trending) >= 10:
+            break
     return trending
 
 
@@ -203,14 +210,25 @@ def fetch_trending() -> list:
 # ---------------------------------------------------------------------------
 
 def _fetch_sol_ohlc_coingecko() -> list | None:
-    ohlc = api_get(
-        "https://api.coingecko.com/api/v3/coins/solana/ohlc",
+    """Fetch ~365 daily SOL closes from CoinGecko's market_chart endpoint.
+
+    NOTE: CoinGecko's `ohlc` endpoint with days=365 returns 4-day candles on the
+    free tier (≈91 points), which is not enough for a 200-day moving average.
+    `market_chart` with days=365 returns daily granularity (≈366 points) on the
+    free tier because days>90 automatically yields daily points.
+    """
+    data = api_get(
+        "https://api.coingecko.com/api/v3/coins/solana/market_chart",
         params={"vs_currency": "usd", "days": "365"},
     )
-    if not ohlc or not isinstance(ohlc, list) or len(ohlc) < 50:
+    if not data or "prices" not in data:
         return None
-    # CoinGecko format: [timestamp_ms, open, high, low, close]
-    return [{"ts": candle[0] / 1000, "open": candle[1], "close": candle[4]} for candle in ohlc]
+    points = data.get("prices") or []
+    if len(points) < 50:
+        return None
+    # market_chart returns [[timestamp_ms, price], ...]. We treat each point
+    # as a daily close for MA/RSI calculations.
+    return [{"ts": p[0] / 1000, "close": p[1]} for p in points]
 
 
 def _fetch_sol_ohlc_paprika() -> list | None:
@@ -227,7 +245,7 @@ def _fetch_sol_ohlc_paprika() -> list | None:
         return None
     candles = []
     for candle in data:
-        if "close" not in candle or "open" not in candle:
+        if "close" not in candle:
             continue
         ts = candle.get("timestamp", candle.get("time_open", ""))
         # Parse ISO timestamp to unix timestamp
@@ -236,12 +254,12 @@ def _fetch_sol_ohlc_paprika() -> list | None:
             unix_ts = dt.timestamp()
         except (ValueError, AttributeError):
             unix_ts = 0
-        candles.append({"ts": unix_ts, "open": candle["open"], "close": candle["close"]})
+        candles.append({"ts": unix_ts, "close": candle["close"]})
     return candles if candles else None
 
 
 def _calc_monthly_returns(candles: list) -> list:
-    """Group candles by month and calculate (last_close - first_open) / first_open * 100."""
+    """Group daily closes by month; return (last_close - first_close)/first_close * 100."""
     from collections import OrderedDict
 
     months = OrderedDict()
@@ -249,16 +267,16 @@ def _calc_monthly_returns(candles: list) -> list:
         dt = datetime.fromtimestamp(c["ts"], tz=timezone.utc)
         key = dt.strftime("%Y-%m")
         if key not in months:
-            months[key] = {"first_open": c["open"], "last_close": c["close"]}
+            months[key] = {"first_close": c["close"], "last_close": c["close"]}
         else:
             months[key]["last_close"] = c["close"]
 
     results = []
     for month_key, vals in months.items():
-        first_open = vals["first_open"]
+        first_close = vals["first_close"]
         last_close = vals["last_close"]
-        if first_open and first_open != 0:
-            ret = round((last_close - first_open) / first_open * 100, 1)
+        if first_close and first_close != 0:
+            ret = round((last_close - first_close) / first_close * 100, 1)
         else:
             ret = 0.0
         results.append({"month": month_key, "return_pct": ret})

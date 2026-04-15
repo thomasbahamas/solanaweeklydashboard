@@ -136,6 +136,10 @@ def run() -> dict:
     log.info("Compiling data...")
 
     previous = load_previous()
+    if previous:
+        log.info(f"  Loaded previous run from {previous.get('generated_at', '?')} (run #{previous.get('run_number', '?')})")
+    else:
+        log.warning("  No previous.json found — cache may not be restoring; WoW will be empty this run")
     run_number = get_run_number()
 
     market = load_json("market.json")

@@ -43,13 +43,25 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Restore cached data
-        uses: actions/cache@v4
+      # State files that must survive across runs:
+      # - previous.json: last run's compiled data (drives WoW delta computation)
+      # - meta.json:     monotonic run_number counter
+      # The old config cached `data/*.json` under a unique per-run key which
+      # never actually rehydrated between runs — every run started with an
+      # empty `data/` and WoW was permanently `{}`.
+      - name: Create data directory
+        run: mkdir -p data
+
+      - name: Restore pipeline state
+        id: state-restore
+        uses: actions/cache/restore@v4
         with:
-          path: data/*.json
-          key: dashboard-data-${{ github.run_id }}
+          path: |
+            data/previous.json
+            data/meta.json
+          key: dashboard-state-${{ github.run_id }}
           restore-keys: |
-            dashboard-data-
+            dashboard-state-
 
       - name: Run pipeline
         working-directory: scripts
@@ -72,6 +84,15 @@ jobs:
             echo "Running full pipeline"
             python run_pipeline.py
           fi
+
+      - name: Save pipeline state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/previous.json
+            data/meta.json
+          key: dashboard-state-${{ github.run_id }}
 
       - name: Send Telegram notification
         if: success() && github.event.schedule != '0 0,4,8,16,20 * * *'

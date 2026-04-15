@@ -177,13 +177,23 @@ def fetch_validator_adoption() -> dict:
 # ---------------------------------------------------------------------------
 
 def build_infra_metrics(adoption: dict) -> dict:
-    """Build infrastructure metric cards using real adoption data."""
-    # Extract specific client adoption from live data
+    """Build infrastructure metric cards using real adoption data.
+
+    Only includes cards for which we have a live metric — showing empty
+    placeholder cards for Jito/DoubleZero/Alpenglow/Harmonic was making the
+    Infrastructure section look half-dead. Roadmap items (no live metric)
+    are still exposed via the separate `roadmap` key so the dashboard can
+    render them as a compact list instead of metric-style cards.
+
+    Jito-Solana is intentionally omitted: Jito's validator client reports
+    the same version strings as stock Agave, so there is no reliable way
+    to distinguish them via `getClusterNodes` alone — the number was
+    always 0%, which is misleading.
+    """
     clients_by_name = {}
     for c in adoption.get("clients", []):
         clients_by_name[c["name"]] = c
 
-    jito = clients_by_name.get("Jito-Solana", {})
     firedancer = clients_by_name.get("Firedancer", {})
     frankendancer = clients_by_name.get("Frankendancer", {})
     agave = clients_by_name.get("Agave", {})
@@ -192,62 +202,60 @@ def build_infra_metrics(adoption: dict) -> dict:
     fd_pct = firedancer.get("stake_pct", 0) + frankendancer.get("stake_pct", 0)
     fd_count = firedancer.get("validator_count", 0) + frankendancer.get("validator_count", 0)
 
-    return {
-        "firedancer": {
-            "name": "Firedancer / Frankendancer",
-            "description": "Jump Crypto's independent validator client — key to client diversity",
-            "metric_label": "Stake-Weighted Adoption",
-            "metric_value": f"{fd_pct:.1f}%" if fd_pct else None,
-            "metric_detail": f"{fd_count} validators",
-            "status": "Live on mainnet" if fd_pct > 0 else "In development",
-            "url": "https://github.com/firedancer-io/firedancer",
-        },
-        "jito": {
-            "name": "Jito-Solana",
-            "description": "MEV-optimized validator client — block building + tip distribution",
-            "metric_label": "Stake-Weighted Adoption",
-            "metric_value": f"{jito.get('stake_pct', 0):.1f}%" if jito else None,
-            "metric_detail": f"{jito.get('validator_count', 0)} validators",
-            "status": "Active" if jito.get("stake_pct", 0) > 0 else "Active",
-            "url": "https://www.jito.network",
-        },
-        "agave": {
+    result = {}
+
+    if agave.get("stake_pct"):
+        result["agave"] = {
             "name": "Agave (Anza)",
             "description": "Primary Solana validator client maintained by Anza",
             "metric_label": "Stake-Weighted Adoption",
-            "metric_value": f"{agave.get('stake_pct', 0):.1f}%" if agave else None,
+            "metric_value": f"{agave['stake_pct']:.1f}%",
             "metric_detail": f"{agave.get('validator_count', 0)} validators",
             "status": "Live on mainnet",
             "url": "https://github.com/anza-xyz/agave",
-        },
-        "doublezero": {
+        }
+
+    if fd_pct:
+        result["firedancer"] = {
+            "name": "Firedancer / Frankendancer",
+            "description": "Jump Crypto's independent validator client — key to client diversity",
+            "metric_label": "Stake-Weighted Adoption",
+            "metric_value": f"{fd_pct:.1f}%",
+            "metric_detail": f"{fd_count} validators",
+            "status": "Live on mainnet",
+            "url": "https://github.com/firedancer-io/firedancer",
+        }
+
+    return result
+
+
+def build_roadmap() -> list:
+    """Static list of upcoming/roadmap infrastructure items.
+
+    These don't have live metrics so rendering them as empty metric cards
+    looks broken. They're exposed here as a lightweight list for a dedicated
+    roadmap renderer.
+    """
+    return [
+        {
             "name": "DoubleZero (D0)",
             "description": "Dedicated high-performance network backbone for validators",
-            "metric_label": "Validator Adoption",
-            "metric_value": None,  # No public API yet
-            "metric_detail": None,
             "status": "Live on mainnet",
             "url": "https://doublezero.xyz",
         },
-        "alpenglow": {
+        {
             "name": "Alpenglow",
             "description": "Next-gen consensus protocol replacing Tower BFT — faster finality",
-            "metric_label": "Progress",
-            "metric_value": None,
-            "metric_detail": None,
             "status": "In development",
-            "url": "https://github.com/solana-labs",
+            "url": "https://www.anza.xyz/blog/alpenglow-a-new-consensus-for-solana",
         },
-        "harmonic": {
+        {
             "name": "Harmonic",
             "description": "Network performance improvements for transaction processing",
-            "metric_label": "Progress",
-            "metric_value": None,
-            "metric_detail": None,
             "status": "In development",
             "url": None,
         },
-    }
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -378,6 +386,7 @@ def run() -> dict:
         "simds": simds,
         "upgrade_news": upgrade_news,
         "infrastructure": infrastructure,
+        "roadmap": build_roadmap(),
     }
 
     save_json(result, "upgrades.json")

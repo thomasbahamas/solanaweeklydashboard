@@ -10,31 +10,59 @@ from config import (
 log = get_logger("fetch_solana")
 
 
+def _compute_chain_delta(historical: list, days: int) -> float | None:
+    """Given a historicalChainTvl series, compute pct change over the last N days.
+
+    Series items look like {"date": unix_sec, "tvl": usd}. Uses the last point
+    as "now" and the point roughly `days` back as the baseline.
+    """
+    if not historical or len(historical) < days + 1:
+        return None
+    current = historical[-1].get("tvl")
+    baseline = historical[-1 - days].get("tvl")
+    if not current or not baseline:
+        return None
+    try:
+        return round((current - baseline) / baseline * 100, 1)
+    except ZeroDivisionError:
+        return None
+
+
 def fetch_chain_tvls() -> list:
-    """DeFiLlama TVL by chain — returns top chains."""
+    """DeFiLlama TVL by chain — top 10 by TVL plus Solana.
+
+    DeFiLlama's `/v2/chains` endpoint only returns current TVL (no deltas),
+    so we compute 1d/7d deltas by pulling `historicalChainTvl` for each top
+    chain. One request per chain — ~11 calls, fine for a daily run.
+    """
     data = api_get("https://api.llama.fi/v2/chains")
     if not data:
         return []
 
-    chains = []
-    for chain in data:
-        name = chain.get("name", "")
-        tvl = chain.get("tvl", 0)
-        chains.append({
-            "name": name,
-            "tvl": tvl,
-            "change_1d": chain.get("change_1d"),
-            "change_7d": chain.get("change_7d"),
-        })
-
-    # Sort by TVL, return top 10 + ensure Solana is included
+    chains = [{"name": c.get("name", ""), "tvl": c.get("tvl", 0)} for c in data]
     chains.sort(key=lambda x: x["tvl"], reverse=True)
+
     top = chains[:10]
-    solana_in_top = any(c["name"] == "Solana" for c in top)
-    if not solana_in_top:
+    if not any(c["name"] == "Solana" for c in top):
         sol = next((c for c in chains if c["name"] == "Solana"), None)
         if sol:
             top.append(sol)
+
+    # Compute deltas for each top chain from historical TVL
+    for entry in top:
+        name = entry["name"]
+        if not name:
+            entry["change_1d"] = None
+            entry["change_7d"] = None
+            continue
+        hist = api_get(f"https://api.llama.fi/v2/historicalChainTvl/{name}")
+        if isinstance(hist, list) and hist:
+            entry["change_1d"] = _compute_chain_delta(hist, 1)
+            entry["change_7d"] = _compute_chain_delta(hist, 7)
+        else:
+            entry["change_1d"] = None
+            entry["change_7d"] = None
+
     return top
 
 
@@ -52,8 +80,44 @@ def fetch_solana_tvl() -> dict:
     return {"current": data[-1].get("tvl", 0) if data else 0, "change_1d": 0}
 
 
+def _fetch_perp_protocols_fallback() -> list:
+    """Fallback: when DeFiLlama's /overview/derivatives endpoint is gated on
+    the Pro tier (returns 402), fetch Solana perp protocols from the free
+    /protocols endpoint and rank by TVL. TVL is not volume, but it's the
+    best we can get from the free tier.
+    """
+    data = api_get("https://api.llama.fi/protocols")
+    if not data:
+        return []
+    perps = []
+    for p in data:
+        if p.get("category") != "Derivatives":
+            continue
+        chains = p.get("chains", [])
+        if "Solana" not in chains:
+            continue
+        chain_tvls = p.get("chainTvls", {})
+        sol_tvl = chain_tvls.get("Solana", 0)
+        if not isinstance(sol_tvl, (int, float)) or sol_tvl <= 0:
+            continue
+        perps.append({
+            "name": p.get("name", "Unknown"),
+            "volume_24h": sol_tvl,  # label reused; see `perp_source` flag below
+            "change_1d": round(p.get("change_1d") or 0, 1),
+        })
+    perps.sort(key=lambda x: x["volume_24h"], reverse=True)
+    return perps[:10]
+
+
 def fetch_dex_volumes() -> dict:
-    """DeFiLlama DEX volumes — Solana spot + perp."""
+    """DeFiLlama DEX volumes — Solana spot + perp.
+
+    Note on perps: DeFiLlama has moved /overview/derivatives/* behind their
+    Pro subscription and it now returns 402 Payment Required. We try the
+    endpoint first and fall back to a TVL-based ranking from /protocols if
+    it fails. The `perp_source` key is set to "volume" or "tvl" so the
+    dashboard renderer knows which label to show.
+    """
     # Overall DEX volumes
     data = api_get("https://api.llama.fi/overview/dexs/solana?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true&dataType=dailyVolume")
 
@@ -80,17 +144,30 @@ def fetch_dex_volumes() -> dict:
 
     perp_volume = 0
     top_perps = []
+    perp_source = "volume"
 
     if perp_data:
         perp_volume = perp_data.get("total24h", 0)
         protocols = perp_data.get("protocols", [])
         protocols.sort(key=lambda x: x.get("total24h") or 0, reverse=True)
         for p in protocols[:10]:
+            vol = p.get("total24h") or 0
+            # Drop dead perp venues — they're noise and make the table look padded
+            if vol <= 0:
+                continue
             top_perps.append({
                 "name": p.get("name", "Unknown"),
-                "volume_24h": p.get("total24h") or 0,
+                "volume_24h": vol,
                 "change_1d": round(p.get("change_1d") or 0, 1),
             })
+
+    # Fallback: DeFiLlama gated /overview/derivatives behind Pro — rank by TVL
+    if not top_perps:
+        log.warning("Derivatives volume endpoint unavailable — falling back to TVL-based perp ranking")
+        top_perps = _fetch_perp_protocols_fallback()
+        if top_perps:
+            perp_source = "tvl"
+            perp_volume = 0  # We don't have volume in this fallback
 
     result = {
         "spot_24h": spot_volume,
@@ -99,29 +176,42 @@ def fetch_dex_volumes() -> dict:
         "combined_24h": spot_volume + perp_volume,
         "top_spot": top_spot,
         "top_perps": top_perps,
+        "perp_source": perp_source,
     }
 
-    # Coverage percentages
+    # Coverage percentages — capped at 100% because DeFiLlama double-counts
+    # aggregator routing (e.g., Jupiter routes through Raydium/Orca), so the
+    # sum of individual DEX volumes can exceed the reported total.
     if spot_volume and top_spot:
         coverage = sum(d.get("volume_24h", 0) for d in top_spot)
-        result["spot_coverage_pct"] = round(coverage / spot_volume * 100, 1) if spot_volume else 0
+        result["spot_coverage_pct"] = min(round(coverage / spot_volume * 100, 1), 100.0)
     if perp_volume and top_perps:
         coverage = sum(d.get("volume_24h", 0) for d in top_perps)
-        result["perp_coverage_pct"] = round(coverage / perp_volume * 100, 1) if perp_volume else 0
+        result["perp_coverage_pct"] = min(round(coverage / perp_volume * 100, 1), 100.0)
 
     return result
 
 
 def fetch_protocol_rankings() -> list:
-    """DeFiLlama top Solana protocols by TVL."""
+    """DeFiLlama top Solana protocols by TVL.
+
+    Excludes CEXes (Binance, OKX, etc.) — those represent exchange-held SOL,
+    not on-chain DeFi activity, and they dominate rank-1 without adding signal
+    to a Solana DeFi dashboard.
+    """
     data = api_get("https://api.llama.fi/protocols")
     if not data:
         return []
+
+    # Categories that aren't DeFi and should not appear in a DeFi ranking
+    EXCLUDED_CATEGORIES = {"CEX", "Chain"}
 
     solana_protocols = []
     for p in data:
         chains = p.get("chains", [])
         if "Solana" not in chains:
+            continue
+        if p.get("category") in EXCLUDED_CATEGORIES:
             continue
         # Get Solana-specific TVL if available
         chain_tvls = p.get("chainTvls", {})
@@ -284,12 +374,19 @@ def fetch_sector_breakdown() -> dict:
     if not data or not isinstance(data, list):
         return {"sectors": [], "depin": []}
 
+    # Same exclusion list as fetch_protocol_rankings — CEXes represent
+    # exchange-held SOL, not on-chain DeFi activity, so they don't belong
+    # in a Solana DeFi sector rotation view.
+    EXCLUDED_CATEGORIES = {"CEX", "Chain"}
+
     sectors = {}  # category -> {tvl, count, top_protocol, change_1d}
     depin_protocols = []
 
     for p in data:
         chains = p.get("chains", [])
         if "Solana" not in chains:
+            continue
+        if p.get("category") in EXCLUDED_CATEGORIES:
             continue
 
         # Get Solana-specific TVL

@@ -25,7 +25,12 @@ RSS_FEEDS = {
 
 
 def fetch_cryptopanic(filter_currencies: str = "SOL") -> list:
-    """CryptoPanic API — aggregated crypto news with sentiment."""
+    """CryptoPanic API — aggregated crypto news with sentiment.
+
+    Note: the `filter=important` parameter is intentionally not used because
+    it returns near-empty results most days; we rely on sorting by default
+    (recency) and cap at 15 items.
+    """
     if not CRYPTOPANIC_API_KEY:
         log.warning("No CryptoPanic API key — skipping")
         return []
@@ -36,7 +41,6 @@ def fetch_cryptopanic(filter_currencies: str = "SOL") -> list:
             "auth_token": CRYPTOPANIC_API_KEY,
             "currencies": filter_currencies,
             "kind": "news",
-            "filter": "important",
             "public": "true",
         },
     )
@@ -211,6 +215,20 @@ def run() -> dict:
     # Merge and categorize
     all_stories = categorize_stories(solana_news + general_news)
     rss_categorized = categorize_stories(rss_news)
+
+    # Fallback: if CryptoPanic returned nothing (API key stale / rate-limited /
+    # v1 endpoint deprecated), promote Solana-tagged RSS items into solana_news
+    # so the AI narrative and dashboard news panels are never empty.
+    if not solana_news:
+        promoted = [
+            s for s in rss_categorized
+            if "Solana" in s.get("categories", []) or "DeFi" in s.get("categories", [])
+        ]
+        if promoted:
+            log.info(f"  CryptoPanic empty — promoting {len(promoted)} RSS items to solana_news")
+            solana_news = promoted[:15]
+    if not general_news and rss_categorized:
+        general_news = [s for s in rss_categorized if s not in solana_news][:10]
 
     result = {
         "timestamp": now_utc(),
