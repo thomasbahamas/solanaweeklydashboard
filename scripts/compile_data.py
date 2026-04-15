@@ -147,6 +147,7 @@ def run() -> dict:
     news = load_json("news.json")
     whales = load_json("whales.json")
     upgrades = load_json("upgrades.json")
+    hyperliquid = load_json("hyperliquid.json")
 
     compiled = {
         "generated_at": now_utc(),
@@ -156,6 +157,7 @@ def run() -> dict:
         "news": news,
         "whales": whales,
         "upgrades": upgrades,
+        "hyperliquid": hyperliquid,
     }
 
     # Compute WoW deltas

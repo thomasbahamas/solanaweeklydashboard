@@ -508,6 +508,102 @@ def build_dex_panel(dex):
 </div>'''
 
 
+def build_hyperliquid_panel(hl):
+    """Top 10 traded coins on Hyperliquid + new listing watch.
+
+    Not a Solana protocol, but perp volume mix there is a strong
+    cross-market signal — and new HL listings frequently front-run
+    broader market attention.
+    """
+    top_coins = hl.get("top_coins", [])
+    if not top_coins:
+        return ""
+
+    listings = hl.get("new_listings", {}) or {}
+    added = listings.get("added", []) or []
+    first_run = listings.get("first_run")
+
+    total_vlm = hl.get("total_vlm_24h", 0)
+    total_oi = hl.get("total_oi_notional", 0)
+    num_markets = hl.get("num_markets", 0)
+
+    # Top 10 table
+    rows = ""
+    for i, c in enumerate(top_coins, 1):
+        name = esc(c.get("name", "?"))
+        vlm = c.get("day_ntl_vlm", 0) or 0
+        mark = c.get("mark_px", 0) or 0
+        chg = c.get("change_24h")
+        oi_notional = (c.get("open_interest", 0) or 0) * mark
+        funding_pct = (c.get("funding") or 0) * 100  # hourly rate
+        # Highlight negative funding (shorts paying longs) vs positive
+        fund_color = "var(--red)" if funding_pct > 0 else "var(--green)"
+        price_str = f"${mark:,.4f}" if mark < 1 else f"${mark:,.2f}"
+        rows += (
+            f'<tr>'
+            f'<td>{i}</td>'
+            f'<td><strong>{name}</strong></td>'
+            f'<td>{price_str}</td>'
+            f'<td>{fmt_change(chg)}</td>'
+            f'<td>{fmt_usd(vlm)}</td>'
+            f'<td>{fmt_usd(oi_notional)}</td>'
+            f'<td style="color:{fund_color}">{funding_pct:+.4f}%</td>'
+            f'</tr>'
+        )
+
+    chart = svg_bar_chart_horiz(top_coins, "name", "day_ntl_vlm", fmt_fn=fmt_usd, accent="#06b6d4")
+
+    # New listings callout
+    if first_run:
+        listing_block = (
+            '<div class="panel-section" style="margin-top:16px;padding:12px;'
+            'border-left:3px solid #71717a;background:#0f0f14">'
+            '<div style="font-size:0.8rem;color:#a1a1aa">'
+            'New-listing tracking seeded this run — diffs will appear on the next update.'
+            '</div></div>'
+        )
+    elif added:
+        tags = "".join(
+            f'<span class="trending-tag" style="background:#06b6d4;color:#000;font-weight:600">{esc(n)}</span>'
+            for n in added
+        )
+        listing_block = (
+            '<div class="panel-section" style="margin-top:16px;padding:12px;'
+            'border-left:3px solid #06b6d4;background:#0a1419">'
+            '<div style="font-size:0.85rem;color:#06b6d4;font-weight:700;margin-bottom:8px">'
+            f'🆕 New listings since last run ({len(added)})</div>'
+            f'<div class="trending-row">{tags}</div>'
+            '</div>'
+        )
+    else:
+        listing_block = (
+            '<div class="panel-section" style="margin-top:16px;padding:12px;'
+            'border-left:3px solid #27272a;background:#0f0f14">'
+            '<div style="font-size:0.8rem;color:#71717a">'
+            'No new listings since last run.'
+            '</div></div>'
+        )
+
+    return f'''<div class="panel-section">
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">24h Volume</div><div class="stat-value">{fmt_usd(total_vlm)}</div></div>
+    <div class="stat"><div class="stat-label">Total OI (notional)</div><div class="stat-value">{fmt_usd(total_oi)}</div></div>
+    <div class="stat"><div class="stat-label">Active Markets</div><div class="stat-value">{num_markets}</div></div>
+  </div>
+  <div class="grid grid-2" style="margin-top:16px">
+    <div>
+      <h4>Top 10 by 24h Volume {source_link("https://app.hyperliquid.xyz/trade", "Hyperliquid")}</h4>
+      <table><tr><th>#</th><th>Coin</th><th>Price</th><th>24h</th><th>Vol 24h</th><th>OI</th><th>Funding/hr</th></tr>{rows}</table>
+    </div>
+    <div>
+      <h4>Volume Distribution</h4>
+      {chart}
+    </div>
+  </div>
+  {listing_block}
+</div>'''
+
+
 def build_protocols_panel(protocols):
     # Filter out CEX entries (e.g. Binance)
     filtered = [p for p in protocols if p.get("category", "").lower() != "cex"]
@@ -1918,6 +2014,7 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     protocols = solana.get("protocol_rankings", [])
 
     upgrades = compiled.get("upgrades", {})
+    hyperliquid = compiled.get("hyperliquid", {})
     signal = narrative.get("the_signal", {})
 
     fg_val = fg.get("value", "N/A")
@@ -1982,6 +2079,17 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
         build_dex_panel(dex),
         solana_fresh,
     )))
+
+    hl_panel = build_hyperliquid_panel(hyperliquid)
+    if hl_panel:
+        hl_ts = hyperliquid.get("timestamp", "")
+        hl_fresh = freshness_badge(hl_ts)
+        sections.append(("hyperliquid", "Hyperliquid", _wrap_section(
+            "hyperliquid", "Hyperliquid Perps",
+            'Source: <a href="https://app.hyperliquid.xyz/trade" target="_blank">Hyperliquid</a>',
+            hl_panel,
+            hl_fresh,
+        )))
 
     sections.append(("protocols", "Protocols", _wrap_section(
         "protocols", "Top Protocols",

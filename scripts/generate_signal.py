@@ -243,6 +243,24 @@ def build_data_prompt(compiled: dict) -> str:
     for t in market.get("trending", []):
         sections.append(f"  #{t.get('market_cap_rank', '?')} {t['symbol']} ({t['name']})")
 
+    # Hyperliquid cross-market signal
+    hl = compiled.get("hyperliquid", {})
+    hl_top = hl.get("top_coins", [])
+    if hl_top:
+        sections.append("")
+        sections.append("=== HYPERLIQUID PERPS (cross-market flow) ===")
+        sections.append(f"Total 24h Volume: ${(hl.get('total_vlm_24h') or 0)/1e9:.2f}B | OI: ${(hl.get('total_oi_notional') or 0)/1e9:.2f}B | Markets: {hl.get('num_markets', 0)}")
+        sections.append("Top 10 by 24h volume:")
+        for i, c in enumerate(hl_top, 1):
+            chg = c.get("change_24h")
+            chg_str = f"{chg:+.1f}%" if isinstance(chg, (int, float)) else "n/a"
+            fund = (c.get("funding") or 0) * 100
+            sections.append(f"  {i}. {c.get('name','?')}: ${(c.get('day_ntl_vlm') or 0)/1e9:.2f}B vol, {chg_str}, funding {fund:+.4f}%/hr")
+        listings = hl.get("new_listings", {}) or {}
+        added = listings.get("added", []) or []
+        if added and not listings.get("first_run"):
+            sections.append(f"NEW LISTINGS this run: {', '.join(added)}")
+
     # Network upgrades
     upgrades = compiled.get("upgrades", {})
     if upgrades:

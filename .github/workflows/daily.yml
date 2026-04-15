@@ -44,8 +44,9 @@ jobs:
         run: pip install -r requirements.txt
 
       # State files that must survive across runs:
-      # - previous.json: last run's compiled data (drives WoW delta computation)
-      # - meta.json:     monotonic run_number counter
+      # - previous.json:          last run's compiled data (drives WoW delta computation)
+      # - meta.json:              monotonic run_number counter
+      # - hyperliquid_known.json: seen-coin set for new-listing detection
       # The old config cached `data/*.json` under a unique per-run key which
       # never actually rehydrated between runs — every run started with an
       # empty `data/` and WoW was permanently `{}`.
@@ -59,6 +60,7 @@ jobs:
           path: |
             data/previous.json
             data/meta.json
+            data/hyperliquid_known.json
           key: dashboard-state-${{ github.run_id }}
           restore-keys: |
             dashboard-state-
@@ -92,6 +94,7 @@ jobs:
           path: |
             data/previous.json
             data/meta.json
+            data/hyperliquid_known.json
           key: dashboard-state-${{ github.run_id }}
 
       - name: Send Telegram notification
