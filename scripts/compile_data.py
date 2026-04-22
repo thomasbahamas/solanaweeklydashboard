@@ -154,6 +154,7 @@ def run(save_baseline: bool = True) -> dict:
     whales = load_json("whales.json")
     upgrades = load_json("upgrades.json")
     hyperliquid = load_json("hyperliquid.json")
+    stocks = load_json("stocks.json")
 
     compiled = {
         "generated_at": now_utc(),
@@ -164,6 +165,7 @@ def run(save_baseline: bool = True) -> dict:
         "whales": whales,
         "upgrades": upgrades,
         "hyperliquid": hyperliquid,
+        "stocks": stocks,
     }
 
     # Compute WoW deltas

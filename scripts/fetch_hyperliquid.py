@@ -28,6 +28,38 @@ log = get_logger("fetch_hyperliquid")
 HL_INFO_URL = "https://api.hyperliquid.xyz/info"
 KNOWN_FILE = DATA_DIR / "hyperliquid_known.json"
 
+# Known stock/ETF tickers on Hyperliquid (HIP-3 stock perps).
+# Used alongside a maxLeverage heuristic to separate stocks from crypto.
+STOCK_TICKERS = {
+    # Mega-cap tech
+    "AAPL", "MSFT", "GOOG", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "NFLX",
+    # Semiconductors
+    "AMD", "INTC", "AVGO", "QCOM", "TSM", "MU",
+    # Crypto-adjacent
+    "COIN", "MSTR", "HOOD", "SQ", "RIOT", "MARA",
+    # Meme stocks
+    "GME", "AMC",
+    # Growth
+    "PLTR", "SOFI", "RIVN", "SNOW", "SHOP", "UBER", "ABNB", "RBLX",
+    # ETFs / indices
+    "SPY", "QQQ", "IWM", "DIA", "GLD", "SLV", "TLT", "USO",
+    # Financials
+    "JPM", "GS", "MS", "BAC", "WFC", "V", "MA",
+    # Energy
+    "XOM", "CVX", "COP", "OXY",
+    # Defense
+    "BA", "LMT", "RTX", "NOC",
+    # Healthcare
+    "LLY", "UNH", "PFE", "ABBV", "MRK",
+    # Consumer
+    "NKE", "MCD", "KO", "PEP", "WMT", "COST", "DIS",
+    # Enterprise
+    "CRM", "ORCL", "ADBE",
+}
+
+# Minimum 24h notional volume to qualify as a "top mover"
+MOVER_MIN_VOLUME = 100_000
+
 
 def _post(body: dict) -> list | dict | None:
     """POST JSON to Hyperliquid info endpoint with retries."""
@@ -51,6 +83,16 @@ def _to_float(v, default=0.0) -> float:
         return float(v)
     except (TypeError, ValueError):
         return default
+
+
+def _is_stock(name: str, max_leverage) -> bool:
+    """Identify if a perp is a stock/ETF rather than crypto.
+
+    Only matches against the curated STOCK_TICKERS set. The maxLeverage
+    heuristic was removed because many small-cap crypto perps also have
+    low leverage limits (3-5x).
+    """
+    return name.upper() in STOCK_TICKERS
 
 
 def _load_known() -> set:
@@ -104,6 +146,7 @@ def fetch_perps() -> dict:
         change_24h = None
         if prev > 0:
             change_24h = round((mark - prev) / prev * 100, 2)
+        max_lev = meta.get("maxLeverage")
         coins.append({
             "name": name,
             "mark_px": mark,
@@ -113,7 +156,8 @@ def fetch_perps() -> dict:
             "day_base_vlm": _to_float(ctx.get("dayBaseVlm")),
             "open_interest": _to_float(ctx.get("openInterest")),
             "funding": _to_float(ctx.get("funding")),
-            "max_leverage": meta.get("maxLeverage"),
+            "max_leverage": max_lev,
+            "is_stock": _is_stock(name, max_lev),
         })
 
     coins.sort(key=lambda c: c["day_ntl_vlm"], reverse=True)
@@ -181,6 +225,26 @@ def run() -> dict:
     else:
         log.info("  No new listings since last run")
 
+    # --- Stock perps (HIP-3) ---
+    stock_perps = sorted(
+        [c for c in coins if c.get("is_stock")],
+        key=lambda c: c["day_ntl_vlm"], reverse=True,
+    )
+    stock_names = {c["name"] for c in stock_perps}
+    new_stock_listings = [n for n in listings.get("added", []) if n in stock_names]
+    log.info(f"  Stock perps: {len(stock_perps)} active")
+    if new_stock_listings:
+        log.info(f"  NEW STOCK LISTINGS: {', '.join(new_stock_listings)}")
+
+    # --- Top movers (all perps with meaningful volume) ---
+    active = [c for c in coins if c["day_ntl_vlm"] > MOVER_MIN_VOLUME and c["change_24h"] is not None]
+    gainers = sorted([c for c in active if c["change_24h"] > 0], key=lambda c: c["change_24h"], reverse=True)[:5]
+    losers = sorted([c for c in active if c["change_24h"] < 0], key=lambda c: c["change_24h"])[:5]
+    if gainers:
+        log.info(f"  Top gainer: {gainers[0]['name']} {gainers[0]['change_24h']:+.1f}%")
+    if losers:
+        log.info(f"  Top loser: {losers[0]['name']} {losers[0]['change_24h']:+.1f}%")
+
     result = {
         "timestamp": now_utc(),
         "source": "https://api.hyperliquid.xyz/info",
@@ -190,6 +254,12 @@ def run() -> dict:
         "total_oi_notional": perps["total_oi_notional"],
         "num_markets": perps["num_markets"],
         "new_listings": listings,
+        "stock_perps": stock_perps[:15],
+        "new_stock_listings": new_stock_listings,
+        "top_movers": {
+            "gainers": gainers,
+            "losers": losers,
+        },
     }
 
     save_json(result, "hyperliquid.json")

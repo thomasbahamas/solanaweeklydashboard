@@ -84,6 +84,9 @@ def main():
     run_step("Fetch Hyperliquid Markets", "fetch_hyperliquid")
     time.sleep(1)
 
+    run_step("Fetch Tokenized Stocks", "fetch_stocks")
+    time.sleep(1)
+
     run_step("Fetch Network Upgrades", "fetch_upgrades")
 
     # Step 2: Compile

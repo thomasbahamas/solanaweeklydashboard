@@ -636,6 +636,170 @@ def build_hyperliquid_panel(hl):
 </div>'''
 
 
+def build_new_markets_panel(hyperliquid: dict, stocks: dict) -> str:
+    """Tokenized stocks and top movers section.
+
+    Combines Hyperliquid stock perps (HIP-3), top movers across all HL perps,
+    and Solana-native tokenized stocks from xStocks and PreStocks.
+    """
+    parts = []
+
+    # --- HL Top Movers ---
+    movers = hyperliquid.get("top_movers", {}) or {}
+    gainers = movers.get("gainers", []) or []
+    losers = movers.get("losers", []) or []
+    if gainers or losers:
+        g_rows = ""
+        for c in gainers:
+            name = esc(c.get("name", "?"))
+            mark = c.get("mark_px", 0) or 0
+            chg = c.get("change_24h")
+            vlm = c.get("day_ntl_vlm", 0) or 0
+            price_str = f"${mark:,.4f}" if mark < 1 else f"${mark:,.2f}"
+            g_rows += f'<tr><td><strong>{name}</strong></td><td>{price_str}</td><td>{fmt_change(chg)}</td><td>{fmt_usd(vlm)}</td></tr>'
+
+        l_rows = ""
+        for c in losers:
+            name = esc(c.get("name", "?"))
+            mark = c.get("mark_px", 0) or 0
+            chg = c.get("change_24h")
+            vlm = c.get("day_ntl_vlm", 0) or 0
+            price_str = f"${mark:,.4f}" if mark < 1 else f"${mark:,.2f}"
+            l_rows += f'<tr><td><strong>{name}</strong></td><td>{price_str}</td><td>{fmt_change(chg)}</td><td>{fmt_usd(vlm)}</td></tr>'
+
+        parts.append(f'''<div style="margin-bottom:20px">
+  <h4>Top Movers — Hyperliquid Perps {source_link("https://app.hyperliquid.xyz/trade", "Hyperliquid")}</h4>
+  <div class="grid grid-2">
+    <div>
+      <div style="color:var(--green);font-weight:600;font-size:0.85rem;margin-bottom:6px">Gainers</div>
+      <table><tr><th>Coin</th><th>Price</th><th>24h</th><th>Vol 24h</th></tr>{g_rows}</table>
+    </div>
+    <div>
+      <div style="color:var(--red);font-weight:600;font-size:0.85rem;margin-bottom:6px">Losers</div>
+      <table><tr><th>Coin</th><th>Price</th><th>24h</th><th>Vol 24h</th></tr>{l_rows}</table>
+    </div>
+  </div>
+</div>''')
+
+    # --- HL Stock Perps ---
+    stock_perps = hyperliquid.get("stock_perps", []) or []
+    new_stock_listings = hyperliquid.get("new_stock_listings", []) or []
+    if stock_perps:
+        s_rows = ""
+        for i, c in enumerate(stock_perps[:10], 1):
+            name = esc(c.get("name", "?"))
+            mark = c.get("mark_px", 0) or 0
+            chg = c.get("change_24h")
+            vlm = c.get("day_ntl_vlm", 0) or 0
+            oi_notional = (c.get("open_interest", 0) or 0) * mark
+            funding_pct = (c.get("funding") or 0) * 100
+            fund_color = "var(--red)" if funding_pct > 0 else "var(--green)"
+            price_str = f"${mark:,.2f}"
+            is_new = name in new_stock_listings
+            new_badge = ' <span style="color:#06b6d4;font-size:0.7rem;font-weight:700">NEW</span>' if is_new else ""
+            s_rows += (
+                f'<tr>'
+                f'<td>{i}</td>'
+                f'<td><strong>{name}</strong>{new_badge}</td>'
+                f'<td>{price_str}</td>'
+                f'<td>{fmt_change(chg)}</td>'
+                f'<td>{fmt_usd(vlm)}</td>'
+                f'<td>{fmt_usd(oi_notional)}</td>'
+                f'<td style="color:{fund_color}">{funding_pct:+.4f}%</td>'
+                f'</tr>'
+            )
+
+        new_listing_note = ""
+        if new_stock_listings:
+            tags = "".join(
+                f'<span class="trending-tag" style="background:#06b6d4;color:#000;font-weight:600">{esc(n)}</span>'
+                for n in new_stock_listings
+            )
+            new_listing_note = (
+                f'<div style="margin-top:10px;padding:10px;border-left:3px solid #06b6d4;background:#0a1419">'
+                f'<div style="font-size:0.8rem;color:#06b6d4;font-weight:700;margin-bottom:6px">'
+                f'New stock listings since last run</div>'
+                f'<div class="trending-row">{tags}</div></div>'
+            )
+
+        parts.append(f'''<div style="margin-bottom:20px">
+  <h4>Stock Perps on Hyperliquid (HIP-3) {source_link("https://app.hyperliquid.xyz/trade", "Trade")}</h4>
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">
+    Tokenized stock perpetuals on Hyperliquid L1 — trade equities 24/7 with leverage.
+    Funding rate indicates directional positioning.
+  </div>
+  <table><tr><th>#</th><th>Ticker</th><th>Price</th><th>24h</th><th>Vol 24h</th><th>OI</th><th>Funding/hr</th></tr>{s_rows}</table>
+  {new_listing_note}
+</div>''')
+
+    # --- xStocks on Solana ---
+    xstocks = (stocks or {}).get("xstocks", []) or []
+    if xstocks:
+        x_rows = ""
+        for t in xstocks[:10]:
+            sym = esc(t.get("symbol", "?"))
+            name = esc(t.get("name", ""))
+            price = t.get("price", 0) or 0
+            chg = t.get("change_24h")
+            vlm = t.get("volume_24h", 0) or 0
+            liq = t.get("liquidity", 0) or 0
+            price_str = f"${price:,.4f}" if price < 1 else f"${price:,.2f}"
+            x_rows += (
+                f'<tr>'
+                f'<td><strong>{sym}</strong></td>'
+                f'<td style="color:var(--muted);font-size:0.8rem">{name}</td>'
+                f'<td>{price_str}</td>'
+                f'<td>{fmt_change(chg)}</td>'
+                f'<td>{fmt_usd(vlm)}</td>'
+                f'<td>{fmt_usd(liq)}</td>'
+                f'</tr>'
+            )
+
+        parts.append(f'''<div style="margin-bottom:20px">
+  <h4>xStocks — Tokenized Equities on Solana {source_link("https://xstocks.fi", "xStocks")}</h4>
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">
+    Fully collateralized US equities as SPL tokens (by Backed Finance). 1:1 backed by real shares.
+  </div>
+  <table><tr><th>Symbol</th><th>Asset</th><th>Price</th><th>24h</th><th>Volume 24h</th><th>Liquidity</th></tr>{x_rows}</table>
+</div>''')
+
+    # --- PreStocks on Solana ---
+    prestocks = (stocks or {}).get("prestocks", []) or []
+    if prestocks:
+        p_rows = ""
+        for t in prestocks[:10]:
+            sym = esc(t.get("symbol", "?"))
+            name = esc(t.get("name", ""))
+            price = t.get("price", 0) or 0
+            chg = t.get("change_24h")
+            vlm = t.get("volume_24h", 0) or 0
+            liq = t.get("liquidity", 0) or 0
+            mcap = t.get("market_cap", 0) or t.get("fdv", 0) or 0
+            price_str = f"${price:,.6f}" if price < 0.01 else f"${price:,.4f}" if price < 1 else f"${price:,.2f}"
+            p_rows += (
+                f'<tr>'
+                f'<td><strong>{sym}</strong></td>'
+                f'<td style="color:var(--muted);font-size:0.8rem">{name}</td>'
+                f'<td>{price_str}</td>'
+                f'<td>{fmt_change(chg)}</td>'
+                f'<td>{fmt_usd(vlm)}</td>'
+                f'<td>{fmt_usd(mcap)}</td>'
+                f'</tr>'
+            )
+
+        parts.append(f'''<div style="margin-bottom:20px">
+  <h4>PreStocks — Pre-IPO Tokens on Solana {source_link("https://prestocks.com", "PreStocks")}</h4>
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">
+    Tokenized pre-IPO equity exposure — trade private company valuations 24/7 on Solana.
+  </div>
+  <table><tr><th>Symbol</th><th>Company</th><th>Price</th><th>24h</th><th>Volume 24h</th><th>Mkt Cap</th></tr>{p_rows}</table>
+</div>''')
+
+    if not parts:
+        return ""
+    return f'<div class="panel-section">{"".join(parts)}</div>'
+
+
 def build_crossovers_panel(hyperliquid: dict, trending: list, prices: dict) -> str:
     """Flag coins with multi-signal attention: trending on CoinGecko AND
     active on Hyperliquid perps. These are the "both retail mindshare and
@@ -2313,6 +2477,7 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
 
     upgrades = compiled.get("upgrades", {})
     hyperliquid = compiled.get("hyperliquid", {})
+    stocks = compiled.get("stocks", {})
     signal = narrative.get("the_signal", {})
 
     fg_val = fg.get("value", "N/A")
@@ -2399,6 +2564,17 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
             'Source: <a href="https://app.hyperliquid.xyz/trade" target="_blank">Hyperliquid</a>',
             hl_panel,
             hl_fresh,
+        )))
+
+    new_markets_panel = build_new_markets_panel(hyperliquid, stocks)
+    if new_markets_panel:
+        stocks_ts = stocks.get("timestamp", "") or hyperliquid.get("timestamp", "")
+        stocks_fresh = freshness_badge(stocks_ts) if stocks_ts else ""
+        sections.append(("new-markets", "Stocks", _wrap_section(
+            "new-markets", "Tokenized Stocks & New Markets",
+            'Sources: <a href="https://app.hyperliquid.xyz/trade" target="_blank">Hyperliquid</a> &middot; <a href="https://xstocks.fi" target="_blank">xStocks</a> &middot; <a href="https://prestocks.com" target="_blank">PreStocks</a>',
+            new_markets_panel,
+            stocks_fresh,
         )))
 
     crossover_panel = build_crossovers_panel(hyperliquid, trending, prices)
