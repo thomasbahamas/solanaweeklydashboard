@@ -15,6 +15,8 @@ On every full run:
 Prices come from the compiled market snapshot — no extra API calls.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from config import load_json, save_json, get_logger, DATA_DIR
 

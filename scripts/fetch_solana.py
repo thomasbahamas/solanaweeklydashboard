@@ -1,5 +1,7 @@
 """Fetch Solana ecosystem data: TVL, DEX volumes, protocol rankings, network stats."""
 
+from __future__ import annotations
+
 import statistics
 
 from config import (
@@ -137,6 +139,7 @@ def fetch_dex_volumes() -> dict:
                 "name": p.get("name", "Unknown"),
                 "volume_24h": p.get("total24h") or 0,
                 "change_1d": round(p.get("change_1d") or 0, 1),
+                "change_7d": round(p.get("change_7d") or 0, 1),
             })
 
     # Perp DEX volumes
@@ -159,6 +162,7 @@ def fetch_dex_volumes() -> dict:
                 "name": p.get("name", "Unknown"),
                 "volume_24h": vol,
                 "change_1d": round(p.get("change_1d") or 0, 1),
+                "change_7d": round(p.get("change_7d") or 0, 1),
             })
 
     # Fallback: DeFiLlama gated /overview/derivatives behind Pro — rank by TVL

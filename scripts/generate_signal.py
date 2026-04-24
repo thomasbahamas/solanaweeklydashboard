@@ -122,6 +122,7 @@ def build_data_prompt(compiled: dict) -> str:
     solana = compiled.get("solana", {})
     news = compiled.get("news", {})
     whales = compiled.get("whales", {})
+    stocks = compiled.get("stocks", {})
 
     # Extract key metrics
     fg = market.get("fear_greed", {})
@@ -270,6 +271,34 @@ def build_data_prompt(compiled: dict) -> str:
         added = listings.get("added", []) or []
         if added and not listings.get("first_run"):
             sections.append(f"NEW LISTINGS this run: {', '.join(added)}")
+
+    # Tokenized equities / RWA markets
+    xstocks = stocks.get("xstocks", []) if isinstance(stocks, dict) else []
+    prestocks = stocks.get("prestocks", []) if isinstance(stocks, dict) else []
+    if xstocks or prestocks:
+        sections.append("")
+        sections.append("=== TOKENIZED STOCKS / RWA WATCH ===")
+        if xstocks:
+            sections.append("xStocks on Solana:")
+            for t in xstocks[:10]:
+                chg = t.get("change_24h")
+                chg_str = f"{chg:+.1f}%" if isinstance(chg, (int, float)) else "n/a"
+                sections.append(
+                    f"  {t.get('symbol','?')} ({t.get('name','')}): "
+                    f"${(t.get('price') or 0):,.2f}, {chg_str}, "
+                    f"${(t.get('volume_24h') or 0)/1e6:.2f}M volume, "
+                    f"${(t.get('liquidity') or 0)/1e6:.2f}M liquidity"
+                )
+        if prestocks:
+            sections.append("PreStocks on Solana:")
+            for t in prestocks[:10]:
+                chg = t.get("change_24h")
+                chg_str = f"{chg:+.1f}%" if isinstance(chg, (int, float)) else "n/a"
+                sections.append(
+                    f"  {t.get('symbol','?')} ({t.get('name','')}): "
+                    f"${(t.get('price') or 0):,.4f}, {chg_str}, "
+                    f"${(t.get('volume_24h') or 0)/1e6:.2f}M volume"
+                )
 
     # Network upgrades
     upgrades = compiled.get("upgrades", {})

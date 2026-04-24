@@ -19,6 +19,8 @@ New listing detection: we persist the set of previously-seen coin names in
 GitHub Actions runs alongside `previous.json` (see .github/workflows/daily.yml).
 """
 
+from __future__ import annotations
+
 import json
 import requests
 from config import save_json, get_logger, now_utc, DATA_DIR, DEFAULT_HEADERS

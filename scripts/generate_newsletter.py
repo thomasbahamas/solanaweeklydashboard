@@ -23,8 +23,10 @@ Content sections:
     The Trade      — today's sector + coin pick from trade_thesis
     Watch          — top divergence alert
     CTA            — dashboard link
-    Footer         — Kit merge tags for unsubscribe
+Footer         — Kit merge tags for unsubscribe
 """
+
+from __future__ import annotations
 
 import html as html_mod
 from datetime import datetime, timezone
@@ -180,6 +182,71 @@ def extract_trade_pick(narrative: dict) -> dict | None:
     }
 
 
+def extract_names_to_watch(compiled: dict, narrative: dict, n: int = 5) -> list:
+    """Compact cross-signal watchlist for the email."""
+    market = compiled.get("market", {}) or {}
+    solana = compiled.get("solana", {}) or {}
+    hyperliquid = compiled.get("hyperliquid", {}) or {}
+    stocks = compiled.get("stocks", {}) or {}
+    prices = market.get("prices", {}) or {}
+    candidates = {}
+
+    def add(symbol, source, score, detail):
+        symbol = (symbol or "").upper().strip()
+        if not symbol or symbol in {"?", "USD", "USDC", "USDT"}:
+            return
+        item = candidates.setdefault(symbol, {"symbol": symbol, "score": 0.0, "sources": [], "details": []})
+        item["score"] += score
+        if source not in item["sources"]:
+            item["sources"].append(source)
+        if detail and detail not in item["details"]:
+            item["details"].append(detail)
+
+    for ticker, data in prices.items():
+        chg = data.get("change_24h")
+        if chg is not None and abs(chg) >= 2:
+            add(ticker, "price", min(abs(chg) * 1.8, 20), f"{fmt_change(chg)} 24h")
+        if ticker in {"SOL", "ONDO", "HYPE"}:
+            add(ticker, "core", 5, "core watchlist")
+
+    for rank, coin in enumerate((hyperliquid.get("top_coins") or [])[:10], 1):
+        vol = coin.get("day_ntl_vlm", 0) or 0
+        add(coin.get("name"), "HL flow", max(15 - rank, 0) + min(vol / 250_000_000, 10), f"#{rank} HL volume, {fmt_usd(vol)}")
+
+    for coin in (hyperliquid.get("top_movers") or {}).get("gainers", [])[:4]:
+        add(coin.get("name"), "breakout", min(abs(coin.get("change_24h") or 0), 18), f"{fmt_change(coin.get('change_24h'))} on {fmt_usd(coin.get('day_ntl_vlm', 0) or 0)} vol")
+
+    for c in (hyperliquid.get("stock_perps") or [])[:8]:
+        add(c.get("name"), "stock perp", min(abs(c.get("change_24h") or 0) + (c.get("day_ntl_vlm", 0) or 0) / 5_000_000, 22), f"{fmt_change(c.get('change_24h'))}, {fmt_usd(c.get('day_ntl_vlm', 0) or 0)} vol")
+
+    for bucket, source in (("xstocks", "xStocks"), ("prestocks", "PreStocks")):
+        for t in (stocks.get(bucket) or [])[:6]:
+            add(t.get("symbol"), source, min(abs(t.get("change_24h") or 0) + (t.get("volume_24h", 0) or 0) / 100_000, 18), f"{fmt_change(t.get('change_24h'))}, {fmt_usd(t.get('volume_24h', 0) or 0)} vol")
+
+    for d in (solana.get("dex_volumes", {}) or {}).get("top_spot", [])[:5]:
+        if (d.get("change_1d") is not None and abs(d.get("change_1d") or 0) >= 5) or (d.get("volume_24h", 0) or 0) >= 250_000_000:
+            add(d.get("name"), "DEX flow", min(abs(d.get("change_1d") or 0) + (d.get("volume_24h", 0) or 0) / 100_000_000, 18), f"{fmt_usd(d.get('volume_24h', 0) or 0)} DEX vol")
+
+    trade = extract_trade_pick(narrative)
+    if trade:
+        coin = trade.get("top_coin", {})
+        add(coin.get("ticker"), "trade", 22, coin.get("reason", "trade setup"))
+
+    return sorted(candidates.values(), key=lambda item: item["score"], reverse=True)[:n]
+
+
+def extract_dex_flow(compiled: dict, n: int = 4) -> list:
+    dex = ((compiled.get("solana", {}) or {}).get("dex_volumes", {}) or {})
+    rows = [d for d in (dex.get("top_spot") or []) if d.get("volume_24h", 0) > 0]
+    rows.sort(key=lambda d: (d.get("volume_24h", 0), d.get("change_1d") or 0), reverse=True)
+    total = dex.get("spot_24h", 0) or 0
+    result = []
+    for d in rows[:n]:
+        share = (d.get("volume_24h", 0) or 0) / total * 100 if total else None
+        result.append({**d, "share": share})
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Subject line — dynamic lead based on biggest signal of the day
 # ---------------------------------------------------------------------------
@@ -261,6 +328,8 @@ def compute_blocks(compiled: dict, narrative: dict) -> dict:
 
     return {
         "top_mover": extract_top_mover(prices),
+        "names_to_watch": extract_names_to_watch(compiled, narrative),
+        "dex_flow": extract_dex_flow(compiled),
         "protocol_movers": extract_protocol_movers(protocol_rankings, n=3),
         "sector_rotation": extract_sector_rotation(solana),
         "hl_listings": extract_hl_listings(hyperliquid),
@@ -380,6 +449,24 @@ def build_text_body(compiled: dict, narrative: dict, wow: dict, blocks: dict) ->
         lines.append("TOP MOVER (24h)")
         lines.append("-" * 30)
         lines.append(f"  {mover['ticker']}: {fmt_price(mover.get('price'))} ({fmt_change(mover.get('change_24h'))})")
+
+    names = blocks.get("names_to_watch") or []
+    if names:
+        lines.append("")
+        lines.append("NAMES TO WATCH")
+        lines.append("-" * 30)
+        for item in names[:5]:
+            detail = item["details"][0] if item.get("details") else ", ".join(item.get("sources", []))
+            lines.append(f"  {item['symbol']}: {detail}")
+
+    dex_flow = blocks.get("dex_flow") or []
+    if dex_flow:
+        lines.append("")
+        lines.append("SOLANA DEX FLOW")
+        lines.append("-" * 30)
+        for d in dex_flow:
+            share = f", {d['share']:.1f}% share" if d.get("share") is not None else ""
+            lines.append(f"  {d['name']}: {fmt_usd(d.get('volume_24h', 0))} ({fmt_change(d.get('change_1d'))} 1d{share})")
 
     # Solana protocol movers
     movers = blocks.get("protocol_movers") or []
@@ -572,6 +659,52 @@ def build_html_body(compiled: dict, narrative: dict, wow: dict, blocks: dict) ->
             )
         )
 
+    # --- Names to watch ---
+    names_section = ""
+    names = blocks.get("names_to_watch") or []
+    if names:
+        rows = ""
+        for item in names[:5]:
+            detail = item["details"][0] if item.get("details") else ", ".join(item.get("sources", []))
+            source = " / ".join(item.get("sources", [])[:2])
+            rows += (
+                '<tr>'
+                f'<td style="padding:5px 0;color:{PURPLE_LIGHT};font-size:15px;font-weight:800;">{esc(item["symbol"])}</td>'
+                f'<td style="padding:5px 0;color:{TEXT_PRIMARY};font-size:13px;">{esc(detail)}</td>'
+                f'<td style="padding:5px 0;color:{TEXT_MUTED};font-size:12px;text-align:right;">{esc(source)}</td>'
+                '</tr>'
+            )
+        names_section = (
+            _section_heading("Names to Watch")
+            + _card_row(f'<table width="100%" cellpadding="0" cellspacing="0" border="0">{rows}</table>')
+        )
+
+    # --- Solana DEX flow ---
+    dex_flow_section = ""
+    dex_flow = blocks.get("dex_flow") or []
+    if dex_flow:
+        rows = ""
+        for d in dex_flow:
+            chg = d.get("change_1d")
+            share = f"{d['share']:.1f}% share" if d.get("share") is not None else ""
+            rows += (
+                '<tr>'
+                f'<td style="padding:5px 0;color:{TEXT_PRIMARY};font-size:14px;font-weight:700;">{esc(d.get("name",""))}</td>'
+                f'<td style="padding:5px 0;color:{TEXT_PRIMARY};font-size:13px;text-align:right;">{fmt_usd(d.get("volume_24h",0))}</td>'
+                f'<td style="padding:5px 0 5px 8px;color:{change_color(chg)};font-size:13px;font-weight:600;text-align:right;">{fmt_change(chg)}</td>'
+                f'<td style="padding:5px 0 5px 8px;color:{TEXT_MUTED};font-size:12px;text-align:right;">{esc(share)}</td>'
+                '</tr>'
+            )
+        dex_flow_section = (
+            _section_heading("Solana DEX Flow")
+            + _card_row(
+                f'<div style="color:{TEXT_MUTED};font-size:13px;line-height:1.5;margin-bottom:8px;">'
+                f'Where spot volume is concentrating across Solana venues.</div>'
+                f'<table width="100%" cellpadding="0" cellspacing="0" border="0">{rows}</table>',
+                accent=CYAN,
+            )
+        )
+
     # --- Protocol movers ---
     movers = blocks.get("protocol_movers") or []
     protocol_section = ""
@@ -729,6 +862,8 @@ def build_html_body(compiled: dict, narrative: dict, wow: dict, blocks: dict) ->
   </td></tr>
 
   {top_mover_section}
+  {names_section}
+  {dex_flow_section}
   {protocol_section}
   {sector_section}
   {hl_section}

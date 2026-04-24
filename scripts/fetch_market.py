@@ -4,6 +4,8 @@ Uses CoinGecko as primary source with CoinPaprika as free fallback
 when CoinGecko credits are exhausted.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
 from config import (
     api_get, save_json, get_logger, now_utc,
@@ -20,6 +22,7 @@ PAPRIKA_IDS = {
     "jito-governance-token": "jto-jito",
     "bonk": "bonk-bonk",
     "hyperliquid": "hype-hyperliquid",
+    "ondo-finance": "ondo-ondo-finance",
     "helium": "hnt-helium",
     "zcash": "zec-zcash",
     "render-token": "rndr-render-token",

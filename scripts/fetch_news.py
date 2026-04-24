@@ -85,13 +85,21 @@ def fetch_cryptopanic_general() -> list:
         return []
 
     stories = []
-    for item in data["results"][:10]:
+    for item in data["results"][:20]:
+        votes = item.get("votes", {})
         stories.append({
             "title": item.get("title", ""),
             "source": item.get("source", {}).get("title", "Unknown"),
             "url": item.get("url", ""),
             "published": item.get("published_at", ""),
             "currencies": [c.get("code", "") for c in item.get("currencies", [])],
+            "sentiment": {
+                "positive": votes.get("positive", 0),
+                "negative": votes.get("negative", 0),
+                "important": votes.get("important", 0),
+                "liked": votes.get("liked", 0),
+            },
+            "kind": item.get("kind", "news"),
         })
     return stories
 
@@ -181,6 +189,7 @@ def categorize_stories(stories: list) -> list:
         "Regulation": ["sec", "regulation", "lawsuit", "legal", "compliance", "etf"],
         "AI": ["ai agent", "artificial intelligence", "machine learning", "llm"],
         "Stablecoin": ["stablecoin", "usdc", "usdt", "tether", "circle"],
+        "RWA": ["rwa", "real world asset", "real-world asset", "ondo", "tokenized", "treasury", "xstocks", "stocks"],
         "NFT": ["nft", "collection", "mint", "pudgy"],
         "Macro": ["fed", "interest rate", "cpi", "inflation", "employment", "gdp"],
     }

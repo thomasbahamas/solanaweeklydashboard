@@ -12,6 +12,8 @@ Data source: DexScreener API (public, free, unauthenticated).
   GET https://api.dexscreener.com/latest/dex/search?q={query}
 """
 
+from __future__ import annotations
+
 import time
 import requests
 from config import save_json, get_logger, now_utc, DEFAULT_HEADERS
