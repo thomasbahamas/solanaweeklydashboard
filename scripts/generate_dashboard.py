@@ -757,7 +757,7 @@ def build_morning_brief_panel(compiled: dict, narrative: dict) -> str:
     <div class="brief-kicker">Morning Command Center</div>
     <h2>{esc(tldr)}</h2>
     <div class="brief-subline">
-      <span>Fear &amp; Greed: <strong>{esc(fg.get("value","N/A"))} {esc(fg.get("label",""))}</strong></span>
+      <span>Crypto Fear &amp; Greed Index: <strong>{esc(fg.get("value","N/A"))} {esc(fg.get("label",""))}</strong></span>
       <span>HL listings: <strong>{esc(new_listing_text)}</strong></span>
     </div>
   </div>
@@ -2076,8 +2076,8 @@ h4 { font-size: 0.9rem; margin-bottom: 8px; color: var(--muted); text-transform:
 .header-right { display: flex; align-items: center; gap: 16px; }
 .header-link { color: var(--muted); font-size: 0.8rem; font-weight: 600; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; }
 .header-link:hover { color: var(--accent); }
-.fg-mini { text-align: center; }
-.fg-mini .fg-label-text { font-size: 0.75rem; color: var(--muted); }
+.fg-mini { text-align: center; min-width: 92px; }
+.fg-mini .fg-label-text { font-size: 0.72rem; color: var(--muted); line-height: 1.2; }
 
 /* Sticky section nav */
 .section-nav {
@@ -3474,7 +3474,7 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     <a href="https://solanaweekly.fun" target="_blank" rel="noopener" class="header-link">Podcast</a>
     <div class="fg-mini">
       {gauge_mini}
-      <div class="fg-label-text">{esc(str(fg_label))}</div>
+      <div class="fg-label-text">Crypto F&amp;G: {esc(str(fg_label))}</div>
     </div>
   </div>
 </div>
