@@ -12,6 +12,7 @@ Dashboard (output/dashboard/index.html):
 
 import json
 from pathlib import Path
+from datetime import datetime, timezone
 from config import load_json, get_logger, now_utc, OUTPUT_DIR
 from utils import esc, fmt_usd, fmt_change, fmt_wow, source_link, sentiment_dot, freshness_badge
 
@@ -208,7 +209,7 @@ def svg_range_bar(current, low, high, width=200, height=24):
 
 def build_market_panel(prices, global_data, fg, wow):
     price_cards = ""
-    order = ["BTC", "ETH", "SOL", "JTO", "BONK", "HYPE", "HNT", "RNDR", "ZEC"]
+    order = ["BTC", "ETH", "SOL", "ONDO", "JTO", "BONK", "HYPE", "HNT", "RNDR", "ZEC"]
     for ticker in order:
         if ticker not in prices:
             continue
@@ -395,6 +396,378 @@ def build_news_panel(news):
 </div>'''
 
 
+def _story_sentiment_score(story: dict) -> int:
+    """Rank stories by positive CryptoPanic votes, then importance/likes."""
+    sentiment = story.get("sentiment") or {}
+    positive = int(sentiment.get("positive") or 0)
+    liked = int(sentiment.get("liked") or 0)
+    important = int(sentiment.get("important") or 0)
+    negative = int(sentiment.get("negative") or 0)
+    return positive * 4 + liked * 2 + important * 3 - negative * 3
+
+
+def _story_priority_score(story: dict) -> int:
+    """Editorial ranking when explicit sentiment votes are sparse."""
+    title = (story.get("title") or "").lower()
+    cats = {c.lower() for c in story.get("categories", [])}
+    score = _story_sentiment_score(story)
+    high_signal_terms = {
+        "etf": 4, "approval": 4, "launch": 3, "raises": 3, "funding": 3,
+        "record": 3, "integrates": 2, "partnership": 2, "rwa": 3,
+        "tokenized": 3, "ondo": 4, "hyperliquid": 3, "xstocks": 4,
+        "solana": 3, "stablecoin": 2, "treasury": 2,
+    }
+    positive_terms = {
+        "surge": 2, "rally": 2, "gain": 2, "jumps": 2, "breakout": 2,
+        "bullish": 2, "positive": 2, "growth": 2, "record": 2,
+    }
+    negative_terms = {
+        "hack": 5, "exploit": 5, "lawsuit": 3, "crash": 4, "plunge": 4,
+        "fraud": 4, "charged": 3, "delay": 2, "outage": 3,
+    }
+    for term, weight in high_signal_terms.items():
+        if term in title:
+            score += weight
+    for term, weight in positive_terms.items():
+        if term in title:
+            score += weight
+    for term, weight in negative_terms.items():
+        if term in title:
+            score -= weight
+    if "rwa" in cats or "stablecoin" in cats:
+        score += 2
+    if "solana" in cats or "defi" in cats:
+        score += 1
+    return score
+
+
+def _collect_unique_stories(news: dict) -> list:
+    stories = []
+    for bucket in ("general_news", "solana_news", "rss_feeds"):
+        stories.extend(news.get(bucket, []) or [])
+    seen = set()
+    unique = []
+    for story in stories:
+        title = (story.get("title") or "").strip()
+        if not title:
+            continue
+        key = title.lower()[:90]
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(story)
+    return unique
+
+
+def build_positive_stories_panel(news: dict) -> str:
+    """Top positive stories across all crypto, not only Solana."""
+    stories = _collect_unique_stories(news)
+    if not stories:
+        return ""
+
+    ranked = sorted(stories, key=_story_priority_score, reverse=True)[:5]
+    rows = []
+    for i, story in enumerate(ranked, 1):
+        cats = ", ".join(story.get("categories", ["General"]))
+        sentiment = story.get("sentiment") or {}
+        vote_bits = []
+        if sentiment.get("positive"):
+            vote_bits.append(f'{int(sentiment.get("positive") or 0)} positive')
+        if sentiment.get("important"):
+            vote_bits.append(f'{int(sentiment.get("important") or 0)} important')
+        vote_text = " / ".join(vote_bits) if vote_bits else "editor-ranked"
+        rows.append(f'''<article class="positive-story">
+  <div class="positive-rank">{i}</div>
+  <div>
+    <a href="{esc(story.get("url","#"))}" target="_blank" rel="noopener">{esc(story.get("title",""))}</a>
+    <div class="positive-meta">
+      <span>{esc(story.get("source",""))}</span>
+      <span>{esc(cats)}</span>
+      <span>{esc(vote_text)}</span>
+    </div>
+  </div>
+</article>''')
+
+    return f'''<div class="panel-section">
+  <div class="brief-note">Ranked from CryptoPanic sentiment when available, then boosted for high-signal themes like RWA, tokenized equities, Hyperliquid, Solana, stablecoins, ETFs, launches, and funding.</div>
+  <div class="positive-list">{"".join(rows)}</div>
+</div>'''
+
+
+def _add_watch_candidate(candidates: dict, symbol: str, source: str, score: float, detail: str, href: str = "#"):
+    symbol = (symbol or "").upper().strip()
+    if not symbol or symbol in {"?", "USD", "USDC", "USDT"}:
+        return
+    current = candidates.setdefault(symbol, {"symbol": symbol, "score": 0.0, "sources": [], "details": [], "href": href})
+    current["score"] += score
+    if source not in current["sources"]:
+        current["sources"].append(source)
+    if detail and detail not in current["details"]:
+        current["details"].append(detail)
+    if href and href != "#":
+        current["href"] = href
+
+
+def collect_names_to_watch(compiled: dict, narrative: dict, limit: int = 5) -> list:
+    """Rank names across price, news, DEX/HL flow, and tokenized-stock activity."""
+    market = compiled.get("market", {}) or {}
+    solana = compiled.get("solana", {}) or {}
+    news = compiled.get("news", {}) or {}
+    hyperliquid = compiled.get("hyperliquid", {}) or {}
+    stocks = compiled.get("stocks", {}) or {}
+    prices = market.get("prices", {}) or {}
+    candidates = {}
+
+    for ticker, data in prices.items():
+        chg = data.get("change_24h")
+        vol_score = min(abs(chg or 0) * 1.8, 20)
+        if chg is not None and abs(chg) >= 2:
+            _add_watch_candidate(candidates, ticker, "price", vol_score, f"{chg:+.1f}% 24h", "#market")
+        if ticker in {"SOL", "ONDO", "HYPE"}:
+            _add_watch_candidate(candidates, ticker, "core watch", 5, f"{data.get('name', ticker)} in morning watchlist", "#market")
+
+    for story in _collect_unique_stories(news):
+        title = story.get("title", "")
+        title_upper = title.upper()
+        score = max(_story_priority_score(story), 0)
+        for ticker in prices:
+            if ticker.upper() in title_upper and score:
+                _add_watch_candidate(candidates, ticker, "narrative", min(score, 20), title[:90], "#positive-stories")
+        for term, ticker in {"ONDO": "ONDO", "HYPERLIQUID": "HYPE", "XSTOCKS": "RWA", "TOKENIZED": "RWA", "RWA": "RWA"}.items():
+            if term in title_upper and score:
+                _add_watch_candidate(candidates, ticker, "narrative", min(score, 18), title[:90], "#positive-stories")
+
+    for rank, coin in enumerate((hyperliquid.get("top_coins") or [])[:12], 1):
+        name = coin.get("name", "?")
+        volume = coin.get("day_ntl_vlm", 0) or 0
+        chg = coin.get("change_24h")
+        score = max(18 - rank, 0) + min(volume / 250_000_000, 12) + min(abs(chg or 0), 10)
+        _add_watch_candidate(candidates, name, "HL volume", score, f"#{rank} HL perp volume, {fmt_usd(volume)}", "#hyperliquid")
+
+    for item in _collect_breakout_items(hyperliquid, stocks)[:8]:
+        score = min(item.get("score", 0), 30)
+        detail_bits = []
+        if item.get("is_new"):
+            detail_bits.append("new listing")
+        if item.get("change_24h") is not None:
+            detail_bits.append(f"{item.get('change_24h'):+.1f}% 24h")
+        if item.get("volume_24h"):
+            detail_bits.append(f"{fmt_usd(item.get('volume_24h'))} vol")
+        _add_watch_candidate(
+            candidates,
+            item.get("symbol", "?"),
+            item.get("venue", "breakout"),
+            score,
+            ", ".join(detail_bits),
+            "#new-markets",
+        )
+
+    dex = solana.get("dex_volumes", {}) or {}
+    for dex_item in (dex.get("top_spot") or [])[:6]:
+        name = dex_item.get("name", "?")
+        volume = dex_item.get("volume_24h", 0) or 0
+        chg = dex_item.get("change_1d")
+        if chg is not None and (abs(chg) >= 5 or volume >= 250_000_000):
+            _add_watch_candidate(candidates, name, "DEX flow", min(abs(chg) + volume / 100_000_000, 18), f"{fmt_usd(volume)} spot DEX vol, {chg:+.1f}% 1d", "#dex")
+
+    thesis = narrative.get("trade_thesis", {}) or {}
+    for coin in thesis.get("coins", []) or []:
+        ticker = coin.get("ticker")
+        if ticker:
+            _add_watch_candidate(candidates, ticker, "trade setup", 22, coin.get("reason", ""), "#trade")
+
+    ranked = sorted(candidates.values(), key=lambda c: c["score"], reverse=True)
+    return ranked[:limit]
+
+
+def build_names_to_watch_panel(compiled: dict, narrative: dict) -> str:
+    names = collect_names_to_watch(compiled, narrative, limit=5)
+    if not names:
+        return ""
+    cards = []
+    for item in names:
+        badges = "".join(f'<span>{esc(source)}</span>' for source in item["sources"][:3])
+        details = item["details"][:2]
+        cards.append(f'''<a class="watch-card" href="{esc(item.get("href","#"))}">
+  <div class="watch-top">
+    <strong>{esc(item["symbol"])}</strong>
+    <div class="watch-badges">{badges}</div>
+  </div>
+  <div class="watch-detail">{esc(details[0]) if details else "Multiple signals lining up"}</div>
+  {f'<div class="watch-subdetail">{esc(details[1])}</div>' if len(details) > 1 else ''}
+</a>''')
+
+    return f'''<div class="names-watch">
+  <div class="radar-head">
+    <div>
+      <h4>Names to Watch</h4>
+      <div class="muted">Ranked across price action, news/narrative, Hyperliquid flow, DEX flow, tokenized-stock activity, and trade setup.</div>
+    </div>
+  </div>
+  <div class="watch-grid">{"".join(cards)}</div>
+</div>'''
+
+
+def _source_health(label: str, payload: dict, required_keys: list[str], section_id: str) -> dict:
+    missing = not payload or any(not payload.get(k) for k in required_keys)
+    timestamp = payload.get("timestamp", "") if isinstance(payload, dict) else ""
+    age_hours = None
+    if timestamp:
+        try:
+            dt = datetime.strptime(timestamp[:16], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
+            age_hours = (datetime.now(timezone.utc) - dt).total_seconds() / 3600
+        except Exception:
+            age_hours = None
+    stale = age_hours is not None and age_hours > 12
+    if missing:
+        status = "missing"
+    elif stale:
+        status = "stale"
+    else:
+        status = "ok"
+    return {"label": label, "status": status, "timestamp": timestamp, "age_hours": age_hours, "href": f"#{section_id}"}
+
+
+def build_data_health_panel(compiled: dict, narrative: dict) -> str:
+    market = compiled.get("market", {}) or {}
+    solana = compiled.get("solana", {}) or {}
+    news = compiled.get("news", {}) or {}
+    hyperliquid = compiled.get("hyperliquid", {}) or {}
+    stocks = compiled.get("stocks", {}) or {}
+    narrative_ok = bool((narrative or {}).get("newsletter_tldr") or (narrative or {}).get("the_signal"))
+    health = [
+        _source_health("Market", market, ["prices", "global"], "market"),
+        _source_health("Solana", solana, ["solana_tvl", "dex_volumes"], "solana"),
+        _source_health("News", news, ["total_stories"], "positive-stories"),
+        _source_health("Hyperliquid", hyperliquid, ["top_coins"], "hyperliquid"),
+        _source_health("Stocks/RWA", stocks, [], "new-markets"),
+        {"label": "Claude", "status": "ok" if narrative_ok else "missing", "timestamp": (narrative or {}).get("timestamp", ""), "href": "#signal"},
+    ]
+    pills = []
+    for item in health:
+        status = item["status"]
+        if item.get("age_hours") is not None and status == "ok":
+            meta = f'{int(item["age_hours"])}h old' if item["age_hours"] >= 1 else "fresh"
+        elif status == "missing":
+            meta = "missing"
+        elif status == "stale":
+            meta = "stale"
+        else:
+            meta = "ok"
+        pills.append(f'''<a class="health-pill health-{status}" href="{esc(item.get("href","#"))}">
+  <strong>{esc(item["label"])}</strong><span>{esc(meta)}</span>
+</a>''')
+    return f'<div class="data-health">{"".join(pills)}</div>'
+
+
+def _price_summary(prices: dict, ticker: str) -> str:
+    data = (prices or {}).get(ticker) or {}
+    if not data:
+        return ""
+    price = data.get("price") or 0
+    price_str = f"${price:,.4f}" if price < 1 else f"${price:,.2f}"
+    return f'{price_str} <span class="metric-change">{fmt_change(data.get("change_24h"))}</span>'
+
+
+def _top_mover_line(hyperliquid: dict) -> tuple[str, str]:
+    gainers = ((hyperliquid or {}).get("top_movers") or {}).get("gainers") or []
+    if not gainers:
+        return ("Top Perp Mover", "Collecting")
+    top = gainers[0]
+    return (
+        "Top Perp Mover",
+        f'{esc(top.get("name","?"))} {fmt_change(top.get("change_24h"))} on {fmt_usd(top.get("day_ntl_vlm", 0) or 0)} vol',
+    )
+
+
+def _top_stock_line(stocks: dict, hyperliquid: dict) -> tuple[str, str]:
+    candidates = []
+    for t in ((stocks or {}).get("xstocks") or []):
+        candidates.append(("xStocks", t.get("symbol", "?"), t.get("change_24h"), t.get("volume_24h", 0) or 0))
+    for t in ((stocks or {}).get("prestocks") or []):
+        candidates.append(("PreStocks", t.get("symbol", "?"), t.get("change_24h"), t.get("volume_24h", 0) or 0))
+    for t in ((hyperliquid or {}).get("stock_perps") or []):
+        candidates.append(("HL Stock Perp", t.get("name", "?"), t.get("change_24h"), t.get("day_ntl_vlm", 0) or 0))
+    if not candidates:
+        return ("Tokenized Stocks", "Collecting xStocks, PreStocks, and stock perps")
+    candidates.sort(key=lambda c: (abs(c[2] or 0), c[3]), reverse=True)
+    market, symbol, change, volume = candidates[0]
+    return ("Tokenized Stocks", f'{esc(symbol)} {fmt_change(change)} <span class="muted">({esc(market)}, {fmt_usd(volume)} vol)</span>')
+
+
+def build_morning_brief_panel(compiled: dict, narrative: dict) -> str:
+    market = compiled.get("market", {})
+    solana = compiled.get("solana", {})
+    hyperliquid = compiled.get("hyperliquid", {})
+    stocks = compiled.get("stocks", {})
+    news = compiled.get("news", {})
+    prices = market.get("prices", {})
+    fg = market.get("fear_greed", {})
+    dex = solana.get("dex_volumes", {})
+    sol_tvl = (solana.get("solana_tvl") or {}).get("current", 0) or 0
+    tldr = (narrative.get("newsletter_tldr") or "").strip()
+    if not tldr:
+        tldr = "Morning brief ready: market, Solana, Hyperliquid flow, tokenized stocks, and the strongest crypto stories are ranked below."
+
+    story_count = news.get("total_stories", len(_collect_unique_stories(news)))
+    hl_volume = hyperliquid.get("total_vlm_24h", 0) or 0
+    new_listings = ((hyperliquid.get("new_listings") or {}).get("added") or [])
+    new_listing_text = ", ".join(new_listings[:5]) if new_listings else "No new HL listings"
+    mover_label, mover_value = _top_mover_line(hyperliquid)
+    stock_label, stock_value = _top_stock_line(stocks, hyperliquid)
+    ondo_summary = _price_summary(prices, "ONDO") or "Add data on next market fetch"
+
+    cards = [
+        ("SOL", _price_summary(prices, "SOL") or "Collecting", "#market"),
+        ("ONDO", ondo_summary, "#market"),
+        ("HYPE", _price_summary(prices, "HYPE") or "Collecting", "#hyperliquid"),
+        ("Solana TVL", fmt_usd(sol_tvl), "#solana"),
+        ("Spot DEX 24h", fmt_usd(dex.get("spot_24h", 0) or 0), "#dex"),
+        ("HL Perp Vol", fmt_usd(hl_volume), "#hyperliquid"),
+        (mover_label, mover_value, "#new-markets"),
+        (stock_label, stock_value, "#new-markets"),
+    ]
+    card_html = "".join(
+        f'''<a class="brief-card" href="{href}">
+  <span>{esc(label)}</span>
+  <strong>{value}</strong>
+</a>'''
+        for label, value, href in cards
+    )
+
+    focus_items = [
+        ("Read the top positive crypto stories", "#positive-stories", f"{story_count} total stories scanned"),
+        ("Track Solana DEX flow", "#dex", f"{fmt_usd(dex.get('spot_24h', 0) or 0)} spot volume"),
+        ("Check RWA and tokenized-stock action", "#new-markets", stock_value),
+        ("Scan Hyperliquid leverage flow", "#hyperliquid", f"{fmt_usd(hl_volume)} 24h volume"),
+        ("Jump to the trade setup", "#trade", "Conviction and watchlist"),
+    ]
+    focus_html = "".join(
+        f'''<a class="focus-link" href="{href}">
+  <span>{esc(title)}</span>
+  <small>{detail}</small>
+</a>'''
+        for title, href, detail in focus_items
+    )
+    data_health = build_data_health_panel(compiled, narrative)
+    names_watch = build_names_to_watch_panel(compiled, narrative)
+
+    return f'''<div class="morning-brief">
+  <div class="brief-lede">
+    <div class="brief-kicker">Morning Command Center</div>
+    <h2>{esc(tldr)}</h2>
+    <div class="brief-subline">
+      <span>Fear &amp; Greed: <strong>{esc(fg.get("value","N/A"))} {esc(fg.get("label",""))}</strong></span>
+      <span>HL listings: <strong>{esc(new_listing_text)}</strong></span>
+    </div>
+  </div>
+  {data_health}
+  <div class="brief-grid">{card_html}</div>
+  {names_watch}
+  <div class="focus-strip">{focus_html}</div>
+</div>'''
+
+
 def build_ecosystem_panel(chain_tvls, trending):
     rows = ""
     for c in chain_tvls[:10]:
@@ -493,7 +866,7 @@ def build_solana_panel(solana, wow):
 def build_dex_panel(dex):
     spot_rows = ""
     for d in dex.get("top_spot", [])[:15]:
-        spot_rows += f'<tr><td>{esc(d["name"])}</td><td>{fmt_usd(d["volume_24h"])}</td><td>{fmt_change(d.get("change_1d"))}</td></tr>'
+        spot_rows += f'<tr><td>{esc(d["name"])}</td><td>{fmt_usd(d["volume_24h"])}</td><td>{fmt_change(d.get("change_1d"))}</td><td>{fmt_change(d.get("change_7d"))}</td></tr>'
 
     # DeFiLlama gated their derivatives volume endpoint behind Pro; we fall
     # back to a TVL-based ranking. Use `perp_source` to label the table
@@ -501,7 +874,7 @@ def build_dex_panel(dex):
     perp_source = dex.get("perp_source", "volume")
     perp_rows = ""
     for d in dex.get("top_perps", [])[:10]:
-        perp_rows += f'<tr><td>{esc(d["name"])}</td><td>{fmt_usd(d["volume_24h"])}</td><td>{fmt_change(d.get("change_1d"))}</td></tr>'
+        perp_rows += f'<tr><td>{esc(d["name"])}</td><td>{fmt_usd(d["volume_24h"])}</td><td>{fmt_change(d.get("change_1d"))}</td><td>{fmt_change(d.get("change_7d"))}</td></tr>'
 
     spot_cov = dex.get("spot_coverage_pct", 0)
     perp_cov = dex.get("perp_coverage_pct", 0)
@@ -518,22 +891,62 @@ def build_dex_panel(dex):
         if perp_source == "volume" else ""
     )
 
+    leaders = sorted(
+        [d for d in dex.get("top_spot", []) if d.get("volume_24h", 0) > 0],
+        key=lambda d: (d.get("volume_24h", 0), d.get("change_1d") or 0),
+        reverse=True,
+    )[:4]
+    mover_pool = [d for d in dex.get("top_spot", []) if d.get("volume_24h", 0) > 0 and d.get("change_1d") is not None]
+    movers = sorted(mover_pool, key=lambda d: d.get("change_1d") or 0, reverse=True)[:4]
+
+    flow_cards = ""
+    for d in leaders:
+        share = ""
+        if dex.get("spot_24h"):
+            share_val = min((d.get("volume_24h", 0) or 0) / dex.get("spot_24h", 1) * 100, 100)
+            share = f'<span>{share_val:.1f}% share</span>'
+        flow_cards += f'''<div class="dex-flow-card">
+  <div class="dex-flow-top"><strong>{esc(d.get("name","Unknown"))}</strong><span>volume leader</span></div>
+  <div class="dex-flow-value">{fmt_usd(d.get("volume_24h", 0) or 0)}</div>
+  <div class="dex-flow-meta">{fmt_change(d.get("change_1d"))} 1d {share}</div>
+</div>'''
+
+    mover_tags = ""
+    for d in movers:
+        mover_tags += f'''<span class="dex-mover-tag">
+  <strong>{esc(d.get("name","Unknown"))}</strong> {fmt_change(d.get("change_1d"))} <span>{fmt_usd(d.get("volume_24h", 0) or 0)}</span>
+</span>'''
+
+    flow_html = ""
+    if flow_cards:
+        flow_html = f'''<div class="dex-flow">
+  <div class="radar-head">
+    <div>
+      <h4>Solana DEX Flow</h4>
+      <div class="muted">Why it matters: DEX volume shows where users are actually trading, not just talking. Venue share and acceleration help spot where liquidity is rotating.</div>
+    </div>
+  </div>
+  <div class="dex-flow-grid">{flow_cards}</div>
+  {f'<div class="dex-movers"><span class="muted">Fastest 1d volume growth:</span>{mover_tags}</div>' if mover_tags else ''}
+</div>'''
+
     return f'''<div class="panel-section">
   <div class="stats-row">
     <div class="stat"><div class="stat-label">Spot DEX 24h</div><div class="stat-value">{fmt_usd(dex.get("spot_24h",0))}</div><div>{fmt_change(dex.get("spot_change_1d"))} 1d</div></div>
     {perp_stat}
     {combined_stat}
   </div>
+  {flow_html}
   <details class="collapse">
     <summary>Individual DEX breakdown</summary>
     <div class="grid grid-2">
       <div>
         <h4>Top Spot DEXes{f" ({spot_cov}% of total)" if spot_cov else ""} {source_link("https://defillama.com/dexs/chain/Solana", "DeFiLlama")}</h4>
-        <table><tr><th>Protocol</th><th>Volume 24h</th><th>Chg 1d</th></tr>{spot_rows}</table>
+        <table><tr><th>Protocol</th><th>Volume 24h</th><th>Chg 1d</th><th>Chg 7d</th></tr>{spot_rows}</table>
       </div>
       <div>
         <h4>{perp_header}{f" ({perp_cov}% of total)" if perp_cov and perp_source == "volume" else ""}</h4>
-        <table><tr><th>Protocol</th><th>{perp_col}</th><th>Chg 1d</th></tr>{perp_rows}</table>
+        <table><tr><th>Protocol</th><th>{perp_col}</th><th>Chg 1d</th><th>Chg 7d</th></tr>{perp_rows}</table>
       </div>
     </div>
   </details>
@@ -622,6 +1035,7 @@ def build_hyperliquid_panel(hl):
     <div class="stat"><div class="stat-label">Total OI (notional)</div><div class="stat-value">{fmt_usd(total_oi)}</div></div>
     <div class="stat"><div class="stat-label">Active Markets</div><div class="stat-value">{num_markets}</div></div>
   </div>
+  <div class="why-line">Why it matters: Hyperliquid is where leveraged attention shows up early. Rising volume plus funding skew can flag narrative trades before they reach spot markets.</div>
   <div class="grid grid-2" style="margin-top:16px">
     <div>
       <h4>Top 10 by 24h Volume {source_link("https://app.hyperliquid.xyz/trade", "Hyperliquid")}</h4>
@@ -636,6 +1050,123 @@ def build_hyperliquid_panel(hl):
 </div>'''
 
 
+def _breakout_item_score(item: dict) -> float:
+    """Prioritize what deserves attention over what merely exists."""
+    change = abs(item.get("change_24h") or 0)
+    volume = item.get("volume_24h", 0) or 0
+    liquidity = item.get("liquidity", 0) or 0
+    oi = item.get("open_interest_notional", 0) or 0
+    funding = abs(item.get("funding_pct", 0) or 0)
+    score = 0.0
+    if item.get("is_new"):
+        score += 40
+    score += min(change, 35) * 1.2
+    score += min(volume / 1_000_000, 30)
+    score += min(liquidity / 500_000, 10)
+    score += min(oi / 1_000_000, 15)
+    score += min(funding * 500, 10)
+    return score
+
+
+def _collect_breakout_items(hyperliquid: dict, stocks: dict) -> list:
+    items = []
+    new_stock_listings = set((hyperliquid or {}).get("new_stock_listings", []) or [])
+
+    for c in (hyperliquid or {}).get("stock_perps", []) or []:
+        mark = c.get("mark_px", 0) or 0
+        oi_notional = (c.get("open_interest", 0) or 0) * mark
+        items.append({
+            "symbol": c.get("name", "?"),
+            "venue": "HL Stock Perp",
+            "price": mark,
+            "change_24h": c.get("change_24h"),
+            "volume_24h": c.get("day_ntl_vlm", 0) or 0,
+            "open_interest_notional": oi_notional,
+            "funding_pct": (c.get("funding") or 0) * 100,
+            "is_new": c.get("name") in new_stock_listings,
+            "href": "https://app.hyperliquid.xyz/trade",
+        })
+
+    for t in ((stocks or {}).get("xstocks") or []):
+        items.append({
+            "symbol": t.get("symbol", "?"),
+            "venue": "xStocks",
+            "price": t.get("price", 0) or 0,
+            "change_24h": t.get("change_24h"),
+            "volume_24h": t.get("volume_24h", 0) or 0,
+            "liquidity": t.get("liquidity", 0) or 0,
+            "is_new": False,
+            "href": t.get("pair_url") or "https://xstocks.fi",
+        })
+
+    for t in ((stocks or {}).get("prestocks") or []):
+        items.append({
+            "symbol": t.get("symbol", "?"),
+            "venue": "PreStocks",
+            "price": t.get("price", 0) or 0,
+            "change_24h": t.get("change_24h"),
+            "volume_24h": t.get("volume_24h", 0) or 0,
+            "liquidity": t.get("liquidity", 0) or 0,
+            "is_new": False,
+            "href": t.get("pair_url") or "https://prestocks.com",
+        })
+
+    seen = set()
+    deduped = []
+    for item in sorted(items, key=_breakout_item_score, reverse=True):
+        key = (item["symbol"], item["venue"])
+        if key in seen:
+            continue
+        seen.add(key)
+        item["score"] = _breakout_item_score(item)
+        deduped.append(item)
+    return deduped
+
+
+def build_breakout_radar(hyperliquid: dict, stocks: dict) -> str:
+    items = _collect_breakout_items(hyperliquid, stocks)
+    if not items:
+        return ""
+
+    cards = []
+    for item in items[:6]:
+        price = item.get("price", 0) or 0
+        price_str = f"${price:,.6f}" if price < 0.01 else f"${price:,.4f}" if price < 1 else f"${price:,.2f}"
+        reason_bits = []
+        if item.get("is_new"):
+            reason_bits.append("new listing")
+        if abs(item.get("change_24h") or 0) >= 5:
+            reason_bits.append("large move")
+        if item.get("volume_24h", 0) >= 1_000_000:
+            reason_bits.append("volume")
+        if item.get("open_interest_notional", 0) >= 1_000_000:
+            reason_bits.append("OI")
+        if abs(item.get("funding_pct", 0) or 0) >= 0.01:
+            reason_bits.append("funding")
+        reason = " / ".join(reason_bits) if reason_bits else "watch"
+        cards.append(f'''<a class="breakout-card" href="{esc(item.get("href","#"))}" target="_blank" rel="noopener">
+  <div class="breakout-top">
+    <strong>{esc(item.get("symbol","?"))}</strong>
+    <span>{esc(item.get("venue",""))}</span>
+  </div>
+  <div class="breakout-price">{price_str} {fmt_change(item.get("change_24h"))}</div>
+  <div class="breakout-meta">
+    <span>{fmt_usd(item.get("volume_24h", 0) or 0)} vol</span>
+    <span>{esc(reason)}</span>
+  </div>
+</a>''')
+
+    return f'''<div class="breakout-radar">
+  <div class="radar-head">
+    <div>
+      <h4>Breakout Radar</h4>
+      <div class="muted">Why it matters: this filters the stock/RWA universe down to names with a catalyst, move, or flow signal instead of showing every ticker equally.</div>
+    </div>
+  </div>
+  <div class="breakout-grid">{"".join(cards)}</div>
+</div>'''
+
+
 def build_new_markets_panel(hyperliquid: dict, stocks: dict) -> str:
     """Tokenized stocks and top movers section.
 
@@ -643,6 +1174,10 @@ def build_new_markets_panel(hyperliquid: dict, stocks: dict) -> str:
     and Solana-native tokenized stocks from xStocks and PreStocks.
     """
     parts = []
+
+    radar = build_breakout_radar(hyperliquid, stocks)
+    if radar:
+        parts.append(radar)
 
     # --- HL Top Movers ---
     movers = hyperliquid.get("top_movers", {}) or {}
@@ -722,7 +1257,9 @@ def build_new_markets_panel(hyperliquid: dict, stocks: dict) -> str:
                 f'<div class="trending-row">{tags}</div></div>'
             )
 
-        parts.append(f'''<div style="margin-bottom:20px">
+        parts.append(f'''<details class="collapse" style="margin-bottom:20px">
+  <summary>Stock perps on Hyperliquid ({len(stock_perps)} tracked)</summary>
+  <div>
   <h4>Stock Perps on Hyperliquid (HIP-3) {source_link("https://app.hyperliquid.xyz/trade", "Trade")}</h4>
   <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">
     Tokenized stock perpetuals on Hyperliquid L1 — trade equities 24/7 with leverage.
@@ -730,7 +1267,8 @@ def build_new_markets_panel(hyperliquid: dict, stocks: dict) -> str:
   </div>
   <table><tr><th>#</th><th>Ticker</th><th>Price</th><th>24h</th><th>Vol 24h</th><th>OI</th><th>Funding/hr</th></tr>{s_rows}</table>
   {new_listing_note}
-</div>''')
+  </div>
+</details>''')
 
     # --- xStocks on Solana ---
     xstocks = (stocks or {}).get("xstocks", []) or []
@@ -755,13 +1293,16 @@ def build_new_markets_panel(hyperliquid: dict, stocks: dict) -> str:
                 f'</tr>'
             )
 
-        parts.append(f'''<div style="margin-bottom:20px">
+        parts.append(f'''<details class="collapse" style="margin-bottom:20px">
+  <summary>xStocks on Solana ({len(xstocks)} tracked)</summary>
+  <div>
   <h4>xStocks — Tokenized Equities on Solana {source_link("https://xstocks.fi", "xStocks")}</h4>
   <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">
     Fully collateralized US equities as SPL tokens (by Backed Finance). 1:1 backed by real shares.
   </div>
   <table><tr><th>Symbol</th><th>Asset</th><th>Price</th><th>24h</th><th>Volume 24h</th><th>Liquidity</th></tr>{x_rows}</table>
-</div>''')
+  </div>
+</details>''')
 
     # --- PreStocks on Solana ---
     prestocks = (stocks or {}).get("prestocks", []) or []
@@ -787,13 +1328,16 @@ def build_new_markets_panel(hyperliquid: dict, stocks: dict) -> str:
                 f'</tr>'
             )
 
-        parts.append(f'''<div style="margin-bottom:20px">
+        parts.append(f'''<details class="collapse" style="margin-bottom:20px">
+  <summary>PreStocks on Solana ({len(prestocks)} tracked)</summary>
+  <div>
   <h4>PreStocks — Pre-IPO Tokens on Solana {source_link("https://prestocks.com", "PreStocks")}</h4>
   <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">
     Tokenized pre-IPO equity exposure — trade private company valuations 24/7 on Solana.
   </div>
   <table><tr><th>Symbol</th><th>Company</th><th>Price</th><th>24h</th><th>Volume 24h</th><th>Mkt Cap</th></tr>{p_rows}</table>
-</div>''')
+  </div>
+</details>''')
 
     if not parts:
         return ""
@@ -1605,6 +2149,191 @@ h4 { font-size: 0.9rem; margin-bottom: 8px; color: var(--muted); text-transform:
   padding: 2px 10px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px;
 }
 
+/* Morning brief */
+.morning-brief {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 18px; display: grid; gap: 16px;
+}
+.brief-kicker {
+  color: var(--accent); font-size: 0.72rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px;
+}
+.brief-lede h2 {
+  font-size: 1.35rem; line-height: 1.25; max-width: 980px;
+}
+.brief-subline {
+  display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px;
+  color: var(--muted); font-size: 0.82rem;
+}
+.brief-subline strong { color: var(--text); }
+.data-health {
+  display: flex; gap: 7px; flex-wrap: wrap;
+}
+.health-pill {
+  display: inline-flex; gap: 6px; align-items: center;
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 9px; color: var(--text); text-decoration: none;
+  background: var(--bg); font-size: 0.72rem;
+}
+.health-pill span { color: var(--muted); }
+.health-ok { border-color: #164e2a; }
+.health-ok strong { color: var(--green); }
+.health-stale { border-color: #7c3f08; }
+.health-stale strong { color: #f97316; }
+.health-missing { border-color: #7f1d1d; }
+.health-missing strong { color: var(--red); }
+.brief-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;
+}
+.brief-card {
+  display: block; min-height: 82px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+  text-decoration: none; color: var(--text);
+}
+.brief-card:hover { border-color: var(--accent); }
+.brief-card span {
+  display: block; color: var(--muted); font-size: 0.68rem;
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;
+}
+.brief-card strong {
+  display: block; font-size: 0.98rem; line-height: 1.25;
+}
+.metric-change { display: inline-block; margin-left: 4px; font-size: 0.78rem; }
+.focus-strip {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
+}
+.focus-link {
+  border-top: 1px solid var(--border); padding-top: 10px;
+  color: var(--text); text-decoration: none;
+}
+.focus-link:hover span { color: var(--accent); }
+.focus-link span { display: block; font-size: 0.85rem; font-weight: 700; }
+.focus-link small {
+  display: block; color: var(--muted); font-size: 0.72rem;
+  line-height: 1.35; margin-top: 2px;
+}
+.names-watch {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px;
+}
+.watch-grid {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px;
+}
+.watch-card {
+  display: block; color: var(--text); text-decoration: none;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px; background: var(--surface);
+}
+.watch-card:hover { border-color: var(--accent); }
+.watch-top {
+  display: flex; justify-content: space-between; gap: 8px; align-items: flex-start;
+}
+.watch-top strong { font-size: 1rem; color: var(--accent); }
+.watch-badges {
+  display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;
+}
+.watch-badges span {
+  background: var(--surface2); color: var(--muted); border-radius: 3px;
+  padding: 1px 5px; font-size: 0.58rem; text-transform: uppercase;
+}
+.watch-detail { margin-top: 8px; font-size: 0.78rem; line-height: 1.35; }
+.watch-subdetail { margin-top: 5px; color: var(--muted); font-size: 0.7rem; line-height: 1.35; }
+.brief-note {
+  color: var(--muted); font-size: 0.78rem; margin-bottom: 12px;
+}
+.positive-list {
+  display: grid; grid-template-columns: 1fr; gap: 10px;
+}
+.positive-story {
+  display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: flex-start;
+  padding: 12px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.positive-rank {
+  width: 28px; height: 28px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; background: #0f2718;
+  color: var(--green); font-weight: 800; font-size: 0.82rem;
+}
+.positive-story a {
+  color: var(--text); text-decoration: none; font-weight: 700;
+  line-height: 1.35;
+}
+.positive-story a:hover { color: var(--accent); }
+.positive-meta {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;
+  color: var(--muted); font-size: 0.7rem;
+}
+.positive-meta span {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 7px;
+}
+.breakout-radar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; margin-bottom: 20px;
+}
+.radar-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 12px; margin-bottom: 12px;
+}
+.breakout-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
+}
+.breakout-card {
+  display: block; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px; color: var(--text); text-decoration: none;
+}
+.breakout-card:hover { border-color: #06b6d4; }
+.breakout-top {
+  display: flex; justify-content: space-between; gap: 8px; align-items: baseline;
+}
+.breakout-top strong { font-size: 1rem; }
+.breakout-top span { color: var(--muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.breakout-price { margin-top: 6px; font-size: 0.92rem; }
+.breakout-meta {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;
+}
+.breakout-meta span {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); border-radius: 4px; padding: 1px 7px; font-size: 0.68rem;
+}
+.why-line {
+  background: var(--surface); border-left: 3px solid #06b6d4;
+  color: var(--muted); padding: 10px 12px; margin: 8px 0 14px;
+  font-size: 0.8rem; line-height: 1.45;
+}
+.dex-flow {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; margin: 14px 0 18px;
+}
+.dex-flow-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;
+}
+.dex-flow-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px;
+}
+.dex-flow-top {
+  display: flex; justify-content: space-between; gap: 8px; align-items: baseline;
+}
+.dex-flow-top strong { font-size: 0.95rem; }
+.dex-flow-top span {
+  color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.dex-flow-value { font-size: 1.1rem; font-weight: 800; margin-top: 6px; }
+.dex-flow-meta {
+  display: flex; gap: 7px; flex-wrap: wrap; align-items: center;
+  margin-top: 4px; color: var(--muted); font-size: 0.72rem;
+}
+.dex-movers {
+  display: flex; gap: 7px; flex-wrap: wrap; align-items: center; margin-top: 12px;
+}
+.dex-mover-tag {
+  display: inline-flex; gap: 5px; align-items: center; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px;
+  font-size: 0.74rem;
+}
+.dex-mover-tag span { color: var(--muted); }
+
 /* Stats */
 .stats-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
 .stat { flex: 1; min-width: 120px; }
@@ -1785,6 +2514,10 @@ footer a:hover { text-decoration: underline; }
   .section-nav a { padding: 10px 12px; font-size: 0.72rem; }
   .tech-row { flex-direction: column; }
   .market-top { flex-direction: column; }
+  .brief-grid, .focus-strip { grid-template-columns: 1fr 1fr; }
+  .watch-grid { grid-template-columns: 1fr 1fr; }
+  .breakout-grid { grid-template-columns: 1fr 1fr; }
+  .dex-flow-grid { grid-template-columns: 1fr 1fr; }
   .fg-hero { width: 100%; flex-direction: row; gap: 16px; justify-content: center; }
   .back-top { bottom: 16px; right: 16px; }
   /* Tables: let them scroll horizontally rather than squish */
@@ -1806,6 +2539,13 @@ footer a:hover { text-decoration: underline; }
   .price-card .price-val { font-size: 0.95rem; }
   .section { padding: 10px; }
   .fg-hero { gap: 10px; }
+  .morning-brief { padding: 14px; }
+  .brief-lede h2 { font-size: 1.05rem; }
+  .brief-grid, .focus-strip { grid-template-columns: 1fr; }
+  .watch-grid { grid-template-columns: 1fr; }
+  .breakout-grid { grid-template-columns: 1fr; }
+  .dex-flow-grid { grid-template-columns: 1fr; }
+  .brief-card { min-height: auto; }
   .stat-value { font-size: 1rem; }
   .stat-label { font-size: 0.65rem; }
   .whale-meta { flex-wrap: wrap; gap: 8px; }
@@ -2522,6 +3262,21 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     # Build all sections; skip empty ones
     # Each entry: (id, nav_label, html)
     sections = []
+
+    sections.append(("brief", "Brief", _wrap_section(
+        "brief", "Morning Brief", "",
+        build_morning_brief_panel(compiled, narrative),
+        market_fresh,
+    )))
+
+    positive_panel = build_positive_stories_panel(news)
+    if positive_panel:
+        sections.append(("positive-stories", "Positive", _wrap_section(
+            "positive-stories", "Top 5 Positive Crypto Stories",
+            'Sources: <a href="https://cryptopanic.com" target="_blank">CryptoPanic</a> &middot; RSS feeds',
+            positive_panel,
+            news_fresh,
+        )))
 
     signal_html = _section_if(build_signal_panel(signal), "signal", "The Signal")
     if signal_html:

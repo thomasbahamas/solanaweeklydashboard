@@ -1,5 +1,7 @@
 """Shared configuration and utilities for Solana Weekly dashboard pipeline."""
 
+from __future__ import annotations
+
 import os
 import json
 import time
@@ -45,6 +47,7 @@ WATCHLIST = {
     "jito-governance-token": "JTO",
     "bonk": "BONK",
     "hyperliquid": "HYPE",
+    "ondo-finance": "ONDO",
     "zcash": "ZEC",
     "helium": "HNT",
     "render-token": "RNDR",

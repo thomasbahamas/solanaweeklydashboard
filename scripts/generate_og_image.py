@@ -13,6 +13,8 @@ Pillow only — no external fonts required; falls back to default if
 a system font isn't found so CI never blocks on font availability.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from datetime import datetime, timezone
 from PIL import Image, ImageDraw, ImageFont

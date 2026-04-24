@@ -5,6 +5,8 @@ as a broadcast to all Kit subscribers using the v4 API with send_at
 to trigger actual delivery.
 """
 
+from __future__ import annotations
+
 import os
 from datetime import datetime, timezone
 from config import load_json, get_logger, now_utc, api_get
