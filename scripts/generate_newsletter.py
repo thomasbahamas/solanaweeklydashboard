@@ -247,6 +247,20 @@ def extract_dex_flow(compiled: dict, n: int = 4) -> list:
     return result
 
 
+def extract_treasury_signal(compiled: dict) -> dict | None:
+    btc = ((compiled.get("treasuries", {}) or {}).get("btc", {}) or {})
+    strategy = btc.get("strategy", {}) or {}
+    if not btc and not strategy:
+        return None
+    return {
+        "total_holdings_btc": btc.get("total_holdings_btc", 0) or 0,
+        "tracked_entities": btc.get("tracked_entities", 0) or 0,
+        "strategy_holdings_btc": strategy.get("holdings_btc", 0) or 0,
+        "strategy_value_usd": strategy.get("current_value_usd", 0) or 0,
+        "strategy_share": strategy.get("share_of_tracked_treasury_btc", 0) or 0,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Subject line — dynamic lead based on biggest signal of the day
 # ---------------------------------------------------------------------------
@@ -330,6 +344,7 @@ def compute_blocks(compiled: dict, narrative: dict) -> dict:
         "top_mover": extract_top_mover(prices),
         "names_to_watch": extract_names_to_watch(compiled, narrative),
         "dex_flow": extract_dex_flow(compiled),
+        "treasury_signal": extract_treasury_signal(compiled),
         "protocol_movers": extract_protocol_movers(protocol_rankings, n=3),
         "sector_rotation": extract_sector_rotation(solana),
         "hl_listings": extract_hl_listings(hyperliquid),
@@ -467,6 +482,20 @@ def build_text_body(compiled: dict, narrative: dict, wow: dict, blocks: dict) ->
         for d in dex_flow:
             share = f", {d['share']:.1f}% share" if d.get("share") is not None else ""
             lines.append(f"  {d['name']}: {fmt_usd(d.get('volume_24h', 0))} ({fmt_change(d.get('change_1d'))} 1d{share})")
+
+    treasury = blocks.get("treasury_signal")
+    if treasury:
+        lines.append("")
+        lines.append("BTC TREASURY BID")
+        lines.append("-" * 30)
+        lines.append(
+            f"  Strategy/MSTR: {treasury.get('strategy_holdings_btc', 0):,.0f} BTC "
+            f"({treasury.get('strategy_share', 0)}% of tracked treasury BTC)"
+        )
+        lines.append(
+            f"  Total tracked treasury BTC: {treasury.get('total_holdings_btc', 0):,.0f} "
+            f"across {treasury.get('tracked_entities', 0)} entities"
+        )
 
     # Solana protocol movers
     movers = blocks.get("protocol_movers") or []
@@ -705,6 +734,24 @@ def build_html_body(compiled: dict, narrative: dict, wow: dict, blocks: dict) ->
             )
         )
 
+    # --- BTC treasury bid ---
+    treasury_section = ""
+    treasury = blocks.get("treasury_signal")
+    if treasury:
+        treasury_section = (
+            _section_heading("BTC Treasury Bid")
+            + _card_row(
+                f'<div style="color:{TEXT_MUTED};font-size:13px;line-height:1.5;margin-bottom:8px;">'
+                f'Saylor/Strategy accumulation as a public proxy for corporate BTC treasury demand.</div>'
+                f'<div style="font-size:18px;font-weight:700;color:{TEXT_PRIMARY};">'
+                f'Strategy: {treasury.get("strategy_holdings_btc", 0):,.0f} BTC</div>'
+                f'<div style="font-size:13px;color:{TEXT_MUTED};margin-top:4px;">'
+                f'{treasury.get("strategy_share", 0)}% of tracked treasury BTC &middot; '
+                f'{treasury.get("tracked_entities", 0)} tracked entities total</div>',
+                accent=CYAN,
+            )
+        )
+
     # --- Protocol movers ---
     movers = blocks.get("protocol_movers") or []
     protocol_section = ""
@@ -864,6 +911,7 @@ def build_html_body(compiled: dict, narrative: dict, wow: dict, blocks: dict) ->
   {top_mover_section}
   {names_section}
   {dex_flow_section}
+  {treasury_section}
   {protocol_section}
   {sector_section}
   {hl_section}

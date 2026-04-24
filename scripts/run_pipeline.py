@@ -88,6 +88,9 @@ def main():
     time.sleep(1)
 
     run_step("Fetch Network Upgrades", "fetch_upgrades")
+    time.sleep(1)
+
+    run_step("Fetch BTC Treasuries", "fetch_treasuries")
 
     # Step 2: Compile
     run_step("Compile Data", "compile_data")
