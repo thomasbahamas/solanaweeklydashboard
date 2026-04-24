@@ -634,6 +634,7 @@ def build_data_health_panel(compiled: dict, narrative: dict) -> str:
     news = compiled.get("news", {}) or {}
     hyperliquid = compiled.get("hyperliquid", {}) or {}
     stocks = compiled.get("stocks", {}) or {}
+    treasuries = compiled.get("treasuries", {}) or {}
     narrative_ok = bool((narrative or {}).get("newsletter_tldr") or (narrative or {}).get("the_signal"))
     health = [
         _source_health("Market", market, ["prices", "global"], "market"),
@@ -641,6 +642,7 @@ def build_data_health_panel(compiled: dict, narrative: dict) -> str:
         _source_health("News", news, ["total_stories"], "positive-stories"),
         _source_health("Hyperliquid", hyperliquid, ["top_coins"], "hyperliquid"),
         _source_health("Stocks/RWA", stocks, [], "new-markets"),
+        _source_health("Treasuries", treasuries, ["btc"], "treasuries"),
         {"label": "Claude", "status": "ok" if narrative_ok else "missing", "timestamp": (narrative or {}).get("timestamp", ""), "href": "#signal"},
     ]
     pills = []
@@ -1424,6 +1426,50 @@ def build_crossovers_panel(hyperliquid: dict, trending: list, prices: dict) -> s
     </tr>
     {body}
   </table>
+</div>'''
+
+
+def build_treasuries_panel(treasuries: dict) -> str:
+    """BTC treasury demand monitor, anchored on Strategy/MSTR."""
+    btc = (treasuries or {}).get("btc", {}) or {}
+    if not btc:
+        return ""
+    strategy = btc.get("strategy", {}) or {}
+    top_holders = btc.get("top_holders", []) or []
+
+    rows = ""
+    for holder in top_holders[:8]:
+        rows += (
+            f'<tr>'
+            f'<td><strong>{esc(holder.get("name","Unknown"))}</strong> <span class="muted">{esc(holder.get("symbol",""))}</span></td>'
+            f'<td>{holder.get("holdings_btc", 0):,.0f} BTC</td>'
+            f'<td>{fmt_usd(holder.get("current_value_usd", 0) or 0)}</td>'
+            f'<td>{holder.get("percentage_of_total_supply", "&mdash;")}</td>'
+            f'</tr>'
+        )
+
+    strategy_cards = ""
+    if strategy:
+        strategy_cards = f'''<div class="stats-row">
+  <div class="stat"><div class="stat-label">Strategy BTC</div><div class="stat-value">{strategy.get("holdings_btc", 0):,.0f}</div><div class="muted">{esc(strategy.get("symbol","MSTR.US"))}</div></div>
+  <div class="stat"><div class="stat-label">Current Value</div><div class="stat-value">{fmt_usd(strategy.get("current_value_usd", 0) or 0)}</div></div>
+  <div class="stat"><div class="stat-label">Tracked Treasury Share</div><div class="stat-value">{strategy.get("share_of_tracked_treasury_btc", 0)}%</div></div>
+  <div class="stat"><div class="stat-label">% BTC Supply</div><div class="stat-value">{strategy.get("percentage_of_total_supply", "&mdash;")}</div></div>
+</div>'''
+
+    return f'''<div class="panel-section">
+  <div class="why-line">Why it matters: Strategy/Saylor buying is one of the cleanest public signals for the corporate BTC treasury bid. If stock/equity froth cools, treasury demand can help show whether capital is rotating back toward BTC and crypto beta.</div>
+  {strategy_cards}
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Tracked Entities</div><div class="stat-value">{btc.get("tracked_entities", 0)}</div></div>
+    <div class="stat"><div class="stat-label">Total Treasury BTC</div><div class="stat-value">{btc.get("total_holdings_btc", 0):,.0f}</div></div>
+    <div class="stat"><div class="stat-label">Total Value</div><div class="stat-value">{fmt_usd(btc.get("total_value_usd", 0) or 0)}</div></div>
+    <div class="stat"><div class="stat-label">Treasury Dominance</div><div class="stat-value">{btc.get("market_cap_dominance", "&mdash;")}</div></div>
+  </div>
+  <details class="collapse">
+    <summary>Top BTC treasury holders</summary>
+    <table><tr><th>Entity</th><th>BTC</th><th>Value</th><th>% Supply</th></tr>{rows}</table>
+  </details>
 </div>'''
 
 
@@ -3218,6 +3264,7 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
     upgrades = compiled.get("upgrades", {})
     hyperliquid = compiled.get("hyperliquid", {})
     stocks = compiled.get("stocks", {})
+    treasuries = compiled.get("treasuries", {})
     signal = narrative.get("the_signal", {})
 
     fg_val = fg.get("value", "N/A")
@@ -3339,6 +3386,16 @@ def build_dashboard(compiled: dict, narrative: dict) -> str:
             'Sources: <a href="https://www.coingecko.com/en/trending" target="_blank">CoinGecko Trending</a> &middot; <a href="https://app.hyperliquid.xyz/trade" target="_blank">Hyperliquid</a>',
             crossover_panel,
             market_fresh,
+        )))
+
+    treasuries_panel = build_treasuries_panel(treasuries)
+    if treasuries_panel:
+        treasuries_ts = treasuries.get("timestamp", "")
+        sections.append(("treasuries", "Treasuries", _wrap_section(
+            "treasuries", "BTC Treasury Bid",
+            'Source: <a href="https://www.coingecko.com/en/public-companies-bitcoin" target="_blank">CoinGecko Treasuries</a>',
+            treasuries_panel,
+            freshness_badge(treasuries_ts) if treasuries_ts else "",
         )))
 
     sections.append(("protocols", "Protocols", _wrap_section(

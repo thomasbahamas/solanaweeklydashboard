@@ -156,6 +156,24 @@ def check_upgrades(upgrades: dict, issues: list, warnings: list):
                 warnings.append(f"Validator count {total_validators} outside expected range")
 
 
+def check_treasuries(treasuries: dict, issues: list, warnings: list):
+    """Verify BTC treasury/Saylor monitor data."""
+    if not treasuries:
+        warnings.append("No BTC treasury data")
+        return
+    btc = treasuries.get("btc", {})
+    if not btc:
+        warnings.append("BTC treasury payload is empty")
+        return
+    total = btc.get("total_holdings_btc", 0)
+    strategy = btc.get("strategy", {})
+    strategy_btc = strategy.get("holdings_btc", 0)
+    if not total:
+        warnings.append("Total BTC treasury holdings missing")
+    if not strategy_btc:
+        warnings.append("Strategy/MSTR BTC holdings missing")
+
+
 def check_narrative(narrative: dict, issues: list, warnings: list):
     """Verify AI-generated narrative data."""
     if not narrative:
@@ -213,6 +231,7 @@ def run() -> dict:
     solana = compiled.get("solana", {})
     news = compiled.get("news", {})
     upgrades = compiled.get("upgrades", {})
+    treasuries = compiled.get("treasuries", {})
 
     check_prices(market, issues, warnings)
     check_global(market, issues, warnings)
@@ -220,6 +239,7 @@ def run() -> dict:
     check_solana(solana, issues, warnings)
     check_news(news, issues, warnings)
     check_upgrades(upgrades, issues, warnings)
+    check_treasuries(treasuries, issues, warnings)
     check_narrative(narrative, issues, warnings)
     check_section_completeness(compiled, narrative, warnings)
 
@@ -252,7 +272,7 @@ def run() -> dict:
         "warning_count": warning_count,
         "sections_checked": [
             "prices", "global", "fear_greed", "solana",
-            "news", "upgrades", "narrative", "completeness",
+            "news", "upgrades", "treasuries", "narrative", "completeness",
         ],
     }
 

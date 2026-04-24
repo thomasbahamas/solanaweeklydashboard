@@ -123,6 +123,7 @@ def build_data_prompt(compiled: dict) -> str:
     news = compiled.get("news", {})
     whales = compiled.get("whales", {})
     stocks = compiled.get("stocks", {})
+    treasuries = compiled.get("treasuries", {})
 
     # Extract key metrics
     fg = market.get("fear_greed", {})
@@ -299,6 +300,23 @@ def build_data_prompt(compiled: dict) -> str:
                     f"${(t.get('price') or 0):,.4f}, {chg_str}, "
                     f"${(t.get('volume_24h') or 0)/1e6:.2f}M volume"
                 )
+
+    # BTC treasury demand / Saylor monitor
+    btc_treasury = treasuries.get("btc", {}) if isinstance(treasuries, dict) else {}
+    strategy = btc_treasury.get("strategy", {}) if isinstance(btc_treasury, dict) else {}
+    if btc_treasury or strategy:
+        sections.append("")
+        sections.append("=== BTC TREASURY / SAYLOR MONITOR ===")
+        sections.append(
+            f"Tracked treasury BTC: {(btc_treasury.get('total_holdings_btc') or 0):,.0f} BTC "
+            f"across {btc_treasury.get('tracked_entities', 0)} entities"
+        )
+        if strategy:
+            sections.append(
+                f"Strategy/MSTR: {(strategy.get('holdings_btc') or 0):,.0f} BTC, "
+                f"${(strategy.get('current_value_usd') or 0)/1e9:.2f}B current value, "
+                f"{strategy.get('share_of_tracked_treasury_btc', 0)}% of tracked treasury BTC"
+            )
 
     # Network upgrades
     upgrades = compiled.get("upgrades", {})
