@@ -57,6 +57,11 @@ def main():
             _cd.run(save_baseline=False)
         except Exception as e:
             log.error(f"  ✗ Compile Data failed: {e}")
+            raise SystemExit(1)
+        verification = run_step("Verify Data Quality", "verify_data")
+        if verification.get("status") == "FAIL":
+            log.error("Market-only refresh refused to publish partial dashboard")
+            raise SystemExit(1)
         run_step("Generate Dashboard", "generate_dashboard")
         total_elapsed = time.time() - total_start
         log.info("")
