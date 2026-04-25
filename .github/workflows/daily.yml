@@ -17,6 +17,11 @@ on:
         options:
           - full
           - market-only
+      send_newsletter:
+        description: 'Send newsletter on manual full run'
+        required: false
+        default: false
+        type: boolean
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -79,7 +84,11 @@ jobs:
             python run_pipeline.py --market-only
           else
             echo "Running full pipeline"
-            python run_pipeline.py
+            if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.send_newsletter }}" != "true" ]]; then
+              python run_pipeline.py --skip-delivery
+            else
+              python run_pipeline.py
+            fi
           fi
 
       - name: Save pipeline state
