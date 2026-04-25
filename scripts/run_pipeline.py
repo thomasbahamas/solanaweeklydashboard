@@ -40,6 +40,7 @@ def main():
     parser.add_argument("--data-only", action="store_true", help="Only fetch data, skip AI and dashboard")
     parser.add_argument("--no-ai", action="store_true", help="Skip AI narrative generation")
     parser.add_argument("--market-only", action="store_true", help="Quick refresh: fetch market data only, recompile, regenerate dashboard")
+    parser.add_argument("--skip-delivery", action="store_true", help="Build newsletter draft but do not send it")
     args = parser.parse_args()
 
     log.info("=" * 60)
@@ -129,7 +130,10 @@ def main():
     run_step("Generate Newsletter", "generate_newsletter")
 
     # Step 6: Send newsletter via Kit
-    run_step("Deliver Newsletter", "deliver_newsletter")
+    if args.skip_delivery:
+        log.info("Skipping newsletter delivery (--skip-delivery flag)")
+    else:
+        run_step("Deliver Newsletter", "deliver_newsletter")
 
     total_elapsed = time.time() - total_start
     log.info("")
