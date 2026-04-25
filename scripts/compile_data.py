@@ -157,6 +157,31 @@ def run(save_baseline: bool = True) -> dict:
     stocks = load_json("stocks.json")
     treasuries = load_json("treasuries.json")
 
+    if not save_baseline and previous:
+        carried = []
+        sections = {
+            "solana": solana,
+            "news": news,
+            "whales": whales,
+            "upgrades": upgrades,
+            "hyperliquid": hyperliquid,
+            "stocks": stocks,
+            "treasuries": treasuries,
+        }
+        for key, value in sections.items():
+            if not value and previous.get(key):
+                sections[key] = previous.get(key)
+                carried.append(key)
+        if carried:
+            log.warning(f"  Market-only refresh carried forward: {', '.join(carried)}")
+        solana = sections["solana"]
+        news = sections["news"]
+        whales = sections["whales"]
+        upgrades = sections["upgrades"]
+        hyperliquid = sections["hyperliquid"]
+        stocks = sections["stocks"]
+        treasuries = sections["treasuries"]
+
     compiled = {
         "generated_at": now_utc(),
         "run_number": run_number,
