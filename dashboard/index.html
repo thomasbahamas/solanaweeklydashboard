@@ -1,0 +1,2203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solana Weekly Dashboard</title>
+<meta name="description" content="SOL RSI at 19 — deepest oversold reading in months — while JTO leads gainers at +4.2% and RWA is the only Solana sector posting positive 24h TVL. Drift issues recovery tokens after $295M hack rattles liquid staking flows">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Solana Weekly">
+<meta property="og:url" content="https://solanaweekly.io/dashboard">
+<meta property="og:title" content="Solana Weekly — 2026-10-19">
+<meta property="og:description" content="SOL RSI at 19 — deepest oversold reading in months — while JTO leads gainers at +4.2% and RWA is the only Solana sector posting positive 24h TVL. Drift issues recovery tokens after $295M hack rattles liquid staking flows">
+<meta property="og:image" content="https://solanaweekly.io/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Solana Weekly — 2026-10-19">
+<meta name="twitter:description" content="SOL RSI at 19 — deepest oversold reading in months — while JTO leads gainers at +4.2% and RWA is the only Solana sector posting positive 24h TVL. Drift issues recovery tokens after $295M hack rattles liquid staking flows">
+<meta name="twitter:image" content="https://solanaweekly.io/og.png">
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%239333ea'/%3E%3Ctext x='16' y='23' font-family='Arial,sans-serif' font-size='22' font-weight='900' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #09090b; --surface: #111113; --surface2: #18181b;
+  --border: #1e1e2e; --border-heavy: #27272a; --text: #e4e4e7; --muted: #71717a;
+  --accent: #9333ea; --accent2: #7c3aed;
+  --green: #22c55e; --red: #ef4444;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 56px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  background: var(--bg); color: var(--text);
+  line-height: 1.6; max-width: 1400px; margin: 0 auto; padding: 12px;
+}
+h3 { font-size: 1rem; margin-bottom: 8px; }
+h4 { font-size: 0.9rem; margin-bottom: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Header */
+.header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 0; border-bottom: 1px solid var(--border);
+}
+.header-left h1 { font-size: 1.6rem; letter-spacing: 2px; }
+.header-left h1 a { color: inherit; text-decoration: none; }
+.header-left .meta { color: var(--muted); font-size: 0.8rem; }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.header-link { color: var(--muted); font-size: 0.8rem; font-weight: 600; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; }
+.header-link:hover { color: var(--accent); }
+.fg-mini { text-align: center; min-width: 92px; }
+.fg-mini .fg-label-text { font-size: 0.72rem; color: var(--muted); line-height: 1.2; }
+
+/* Sticky section nav */
+.section-nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  display: flex; gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  backdrop-filter: blur(8px);
+}
+.section-nav a {
+  padding: 12px 18px; font-size: 0.78rem; font-weight: 600;
+  color: var(--muted); text-decoration: none; white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.section-nav a:hover { color: var(--text); }
+.section-nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Newsletter banner */
+.nl-banner {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 20px; margin: 12px 0; display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.nl-banner .nl-text { font-size: 0.82rem; color: var(--muted); }
+.nl-banner .nl-text strong { color: var(--text); }
+.nl-form { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.nl-input {
+  padding: 6px 12px; border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); font-size: 0.78rem; border-radius: 5px; outline: none; width: 180px;
+}
+.nl-input:focus { border-color: var(--accent); }
+.nl-btn {
+  background: var(--accent); color: #fff; padding: 6px 18px; border-radius: 5px;
+  font-size: 0.8rem; font-weight: 600; border: none; cursor: pointer; white-space: nowrap;
+}
+.nl-btn:hover { opacity: 0.9; }
+
+/* Sections */
+.dash-section {
+  padding: 24px 0; border-bottom: 1px solid var(--border);
+}
+.dash-section:last-of-type { border-bottom: none; }
+.section-title {
+  font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--accent); margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 2px solid var(--accent);
+  cursor: pointer; user-select: none;
+}
+.section-toggle {
+  color: var(--muted); margin-left: 8px; font-size: 0.7rem;
+  transition: transform 0.15s;
+}
+.section-body { transition: max-height 0.2s ease; }
+.freshness { font-size: 0.65rem; font-weight: 600; text-transform: none; letter-spacing: 0; }
+
+/* Two-column section layout */
+.section-cols {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+}
+.section-cols-3 {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;
+}
+.section-full { }
+
+/* Panel section (reused from panel builders) */
+.panel-section { padding: 0; }
+.section-badge {
+  display: inline-block; background: var(--surface2); color: var(--muted);
+  padding: 2px 10px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px;
+}
+
+/* Morning brief */
+.morning-brief {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 18px; display: grid; gap: 16px;
+}
+.brief-kicker {
+  color: var(--accent); font-size: 0.72rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px;
+}
+.brief-lede h2 {
+  font-size: 1.35rem; line-height: 1.25; max-width: 980px;
+}
+.brief-subline {
+  display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px;
+  color: var(--muted); font-size: 0.82rem;
+}
+.brief-subline strong { color: var(--text); }
+.data-health {
+  display: flex; gap: 7px; flex-wrap: wrap;
+}
+.health-pill {
+  display: inline-flex; gap: 6px; align-items: center;
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 9px; color: var(--text); text-decoration: none;
+  background: var(--bg); font-size: 0.72rem;
+}
+.health-pill span { color: var(--muted); }
+.health-ok { border-color: #164e2a; }
+.health-ok strong { color: var(--green); }
+.health-stale { border-color: #7c3f08; }
+.health-stale strong { color: #f97316; }
+.health-missing { border-color: #7f1d1d; }
+.health-missing strong { color: var(--red); }
+.brief-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;
+}
+.brief-card {
+  display: block; min-height: 82px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+  text-decoration: none; color: var(--text);
+}
+.brief-card:hover { border-color: var(--accent); }
+.brief-card span {
+  display: block; color: var(--muted); font-size: 0.68rem;
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;
+}
+.brief-card strong {
+  display: block; font-size: 0.98rem; line-height: 1.25;
+}
+.metric-change { display: inline-block; margin-left: 4px; font-size: 0.78rem; }
+.focus-strip {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
+}
+.focus-link {
+  border-top: 1px solid var(--border); padding-top: 10px;
+  color: var(--text); text-decoration: none;
+}
+.focus-link:hover span { color: var(--accent); }
+.focus-link span { display: block; font-size: 0.85rem; font-weight: 700; }
+.focus-link small {
+  display: block; color: var(--muted); font-size: 0.72rem;
+  line-height: 1.35; margin-top: 2px;
+}
+.names-watch {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px;
+}
+.watch-grid {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px;
+}
+.watch-card {
+  display: block; color: var(--text); text-decoration: none;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px; background: var(--surface);
+}
+.watch-card:hover { border-color: var(--accent); }
+.watch-top {
+  display: flex; justify-content: space-between; gap: 8px; align-items: flex-start;
+}
+.watch-top strong { font-size: 1rem; color: var(--accent); }
+.watch-badges {
+  display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;
+}
+.watch-badges span {
+  background: var(--surface2); color: var(--muted); border-radius: 3px;
+  padding: 1px 5px; font-size: 0.58rem; text-transform: uppercase;
+}
+.watch-detail { margin-top: 8px; font-size: 0.78rem; line-height: 1.35; }
+.watch-subdetail { margin-top: 5px; color: var(--muted); font-size: 0.7rem; line-height: 1.35; }
+.brief-note {
+  color: var(--muted); font-size: 0.78rem; margin-bottom: 12px;
+}
+.positive-list {
+  display: grid; grid-template-columns: 1fr; gap: 10px;
+}
+.positive-story {
+  display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: flex-start;
+  padding: 12px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.positive-rank {
+  width: 28px; height: 28px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; background: #0f2718;
+  color: var(--green); font-weight: 800; font-size: 0.82rem;
+}
+.positive-story a {
+  color: var(--text); text-decoration: none; font-weight: 700;
+  line-height: 1.35;
+}
+.positive-story a:hover { color: var(--accent); }
+.positive-meta {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;
+  color: var(--muted); font-size: 0.7rem;
+}
+.positive-meta span {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 7px;
+}
+.breakout-radar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; margin-bottom: 20px;
+}
+.radar-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 12px; margin-bottom: 12px;
+}
+.breakout-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
+}
+.breakout-card {
+  display: block; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px; color: var(--text); text-decoration: none;
+}
+.breakout-card:hover { border-color: #06b6d4; }
+.breakout-top {
+  display: flex; justify-content: space-between; gap: 8px; align-items: baseline;
+}
+.breakout-top strong { font-size: 1rem; }
+.breakout-top span { color: var(--muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.breakout-price { margin-top: 6px; font-size: 0.92rem; }
+.breakout-meta {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;
+}
+.breakout-meta span {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); border-radius: 4px; padding: 1px 7px; font-size: 0.68rem;
+}
+.why-line {
+  background: var(--surface); border-left: 3px solid #06b6d4;
+  color: var(--muted); padding: 10px 12px; margin: 8px 0 14px;
+  font-size: 0.8rem; line-height: 1.45;
+}
+.dex-flow {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; margin: 14px 0 18px;
+}
+.dex-flow-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;
+}
+.dex-flow-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px;
+}
+.dex-flow-top {
+  display: flex; justify-content: space-between; gap: 8px; align-items: baseline;
+}
+.dex-flow-top strong { font-size: 0.95rem; }
+.dex-flow-top span {
+  color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.dex-flow-value { font-size: 1.1rem; font-weight: 800; margin-top: 6px; }
+.dex-flow-meta {
+  display: flex; gap: 7px; flex-wrap: wrap; align-items: center;
+  margin-top: 4px; color: var(--muted); font-size: 0.72rem;
+}
+.dex-movers {
+  display: flex; gap: 7px; flex-wrap: wrap; align-items: center; margin-top: 12px;
+}
+.dex-mover-tag {
+  display: inline-flex; gap: 5px; align-items: center; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px;
+  font-size: 0.74rem;
+}
+.dex-mover-tag span { color: var(--muted); }
+
+/* Stats */
+.stats-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+.stat { flex: 1; min-width: 120px; }
+.stat-label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-value { font-size: 1.25rem; font-weight: 700; }
+.muted { color: var(--muted); font-size: 0.8rem; }
+.wow { font-size: 0.78rem; font-weight: 600; }
+
+/* Grid */
+.grid { display: grid; gap: 12px; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.grid-prices { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+
+/* Market top layout */
+.market-top {
+  display: flex; gap: 24px; align-items: flex-start; margin-bottom: 20px;
+}
+.market-stats-col { flex: 1; }
+.fg-hero {
+  flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 24px; min-width: 160px;
+}
+.fg-hero .fg-label-text { font-weight: 700; font-size: 1rem; margin-top: 4px; }
+.fg-hero .fg-yesterday { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+.fg-label-text { font-weight: 600; }
+
+/* Cards */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px;
+}
+.price-card .price-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.price-card .sparkline-wrap { flex-shrink: 0; margin-left: 8px; opacity: 0.85; }
+.price-card .price-name { font-size: 0.8rem; font-weight: 600; }
+.price-card .price-name .muted { font-weight: 400; font-size: 0.7rem; }
+.price-card .price-val { font-size: 1.2rem; font-weight: 700; margin: 2px 0; }
+.price-card .price-7d { margin-top: 4px; font-size: 0.78rem; }
+
+/* Back to top */
+.back-top {
+  position: fixed; bottom: 24px; right: 24px; z-index: 200;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none; cursor: pointer;
+  font-size: 1.1rem; display: none; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: opacity 0.2s;
+}
+.back-top:hover { opacity: 0.85; }
+.back-top.visible { display: flex; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+th { text-align: left; color: var(--muted); padding: 8px 6px; border-bottom: 1px solid var(--border); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; }
+td { padding: 7px 6px; border-bottom: 1px solid var(--border); }
+.full-table { font-size: 0.8rem; }
+
+/* News */
+.news-item { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.news-item a { color: var(--text); text-decoration: none; }
+.news-item a:hover { color: var(--accent); }
+.news-cat {
+  display: inline-block; background: var(--surface2); color: var(--accent);
+  padding: 1px 8px; border-radius: 3px; font-size: 0.65rem; margin-left: 6px;
+}
+.news-source { color: var(--muted); font-size: 0.7rem; margin-left: 6px; }
+
+/* Technical */
+.tech-row { display: flex; gap: 32px; flex-wrap: wrap; margin-top: 8px; }
+.tech-hero {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 16px 10px;
+}
+.tech-hero-header {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-bottom: 8px;
+}
+.tech-hero-price { font-size: 1.8rem; font-weight: 700; margin-top: 2px; }
+.tech-hero-chart { height: 220px; }
+.tech-hero-chart svg { width: 100%; height: 100%; }
+@media (max-width: 640px) {
+  .tech-hero-chart { height: 150px; }
+  .tech-hero-price { font-size: 1.4rem; }
+}
+
+/* Trending */
+.trending-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.trending-tag {
+  display: inline-block; background: var(--surface2); border: 1px solid var(--border);
+  padding: 4px 12px; border-radius: 4px; font-size: 0.8rem;
+}
+
+/* Whale */
+.whale-event { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.whale-title { font-size: 0.88rem; }
+.whale-meta { display: flex; gap: 12px; margin-top: 4px; }
+.staking-row { font-size: 0.82rem; padding: 4px 0; }
+
+/* Market Makers */
+.mm-signal {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.mm-body { flex: 1; }
+.mm-sentiment { font-size: 0.75rem; color: var(--muted); margin-top: 2px; font-style: italic; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+.dot-green-bright { background: #16a34a; }
+.dot-green { background: var(--green); }
+.dot-red { background: var(--red); }
+.dot-gray { background: var(--muted); }
+
+/* X Pulse */
+.xp-item { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.xp-handle { color: var(--accent); font-weight: 600; margin-right: 6px; font-size: 0.8rem; }
+.narr-item { padding: 4px 0; font-size: 0.85rem; }
+.narr-arrow { color: var(--accent); margin-right: 4px; }
+
+/* Signal */
+.signal-context {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px; font-size: 0.88rem; line-height: 1.7;
+  white-space: pre-wrap;
+}
+.div-alert { padding: 10px 0 10px 14px; margin-bottom: 8px; }
+.div-sev { font-size: 0.75rem; font-weight: 600; margin-left: 6px; }
+
+/* Collapsible details */
+details.collapse { margin-top: 12px; }
+details.collapse summary {
+  cursor: pointer; font-size: 0.78rem; font-weight: 600; color: var(--muted);
+  padding: 8px 0; list-style: none; user-select: none;
+}
+details.collapse summary::-webkit-details-marker { display: none; }
+details.collapse summary::before { content: '\25B6  '; font-size: 0.6rem; transition: transform 0.15s; display: inline-block; }
+details.collapse[open] summary::before { transform: rotate(90deg); }
+details.collapse > div { padding-top: 8px; }
+
+/* Briefing script */
+.brief-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px; font-size: 0.78rem;
+}
+.brief-header .muted { color: var(--muted); }
+.briefing-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  padding: 14px 16px; font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  font-size: 0.82rem; line-height: 1.65; color: var(--text);
+  white-space: pre-wrap; word-wrap: break-word; max-height: 380px; overflow-y: auto;
+}
+.copy-btn {
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border-heavy);
+  padding: 5px 12px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;
+  cursor: pointer; text-transform: uppercase; letter-spacing: 0.4px;
+}
+.copy-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Source links */
+.section-sources { font-size: 0.7rem; margin-bottom: 12px; color: var(--muted); }
+.section-sources a { color: var(--muted); text-decoration: none; }
+.section-sources a:hover { color: var(--accent); }
+.source-link { font-size: 0.7rem; color: var(--muted); text-decoration: none; font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 8px; }
+.source-link:hover { color: var(--accent); }
+
+/* Footer */
+footer { text-align: center; color: var(--muted); padding: 24px 0; font-size: 0.75rem; border-top: 1px solid var(--border); margin-top: 20px; }
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  body { padding: 8px; }
+  .grid-2, .grid-3, .section-cols, .section-cols-3 { grid-template-columns: 1fr; }
+  .grid-prices { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .stats-row { flex-direction: column; gap: 12px; }
+  .header { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .header-right { flex-wrap: wrap; gap: 10px; }
+  .section-nav { margin: 0 -8px; padding: 0 8px; }
+  .section-nav a { padding: 10px 12px; font-size: 0.72rem; }
+  .tech-row { flex-direction: column; }
+  .market-top { flex-direction: column; }
+  .brief-grid, .focus-strip { grid-template-columns: 1fr 1fr; }
+  .watch-grid { grid-template-columns: 1fr 1fr; }
+  .breakout-grid { grid-template-columns: 1fr 1fr; }
+  .dex-flow-grid { grid-template-columns: 1fr 1fr; }
+  .fg-hero { width: 100%; flex-direction: row; gap: 16px; justify-content: center; }
+  .back-top { bottom: 16px; right: 16px; }
+  /* Tables: let them scroll horizontally rather than squish */
+  .section-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 480px; font-size: 0.78rem; }
+  th, td { padding: 6px 4px; }
+  .section { padding: 12px; }
+  .section-title { font-size: 0.85rem; }
+  h1 { font-size: 1.3rem !important; letter-spacing: 1px !important; }
+}
+@media (max-width: 480px) {
+  body { padding: 6px; font-size: 0.92rem; }
+  .header-left h1 { font-size: 1.2rem; letter-spacing: 1px; }
+  .header-left .meta { font-size: 0.7rem; }
+  .section-nav a { padding: 9px 10px; font-size: 0.68rem; }
+  .grid-prices { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .price-card { padding: 8px 10px; }
+  .price-card .price-name { font-size: 0.75rem; }
+  .price-card .price-val { font-size: 0.95rem; }
+  .section { padding: 10px; }
+  .fg-hero { gap: 10px; }
+  .morning-brief { padding: 14px; }
+  .brief-lede h2 { font-size: 1.05rem; }
+  .brief-grid, .focus-strip { grid-template-columns: 1fr; }
+  .watch-grid { grid-template-columns: 1fr; }
+  .breakout-grid { grid-template-columns: 1fr; }
+  .dex-flow-grid { grid-template-columns: 1fr; }
+  .brief-card { min-height: auto; }
+  .stat-value { font-size: 1rem; }
+  .stat-label { font-size: 0.65rem; }
+  .whale-meta { flex-wrap: wrap; gap: 8px; }
+  table { min-width: 380px; font-size: 0.72rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1><a href="/">SOLANA WEEKLY</a></h1>
+    <div class="meta">Updated: 2026-10-19 17:38 UTC &middot; Run #979</div>
+  </div>
+  <div class="header-right">
+    <a href="https://solanaweekly.fun" target="_blank" rel="noopener" class="header-link">Podcast</a>
+    <div class="fg-mini">
+      <svg width="70" height="55" viewBox="0 0 70 55">
+  <path d="M -1 40 A 36 36 0 0 1 71 40" fill="none" stroke="#1e1e2e" stroke-width="8" stroke-linecap="round"/>
+  <path d="M -1 40 A 36 36 0 1 1 45.0 5.4" fill="none" stroke="#22c55e" stroke-width="8" stroke-linecap="round"/>
+  <text x="35" y="32" text-anchor="middle" fill="#22c55e" font-size="20" font-weight="700">59</text>
+</svg>
+      <div class="fg-label-text">Crypto F&amp;G: Greed</div>
+    </div>
+  </div>
+</div>
+
+<nav class="section-nav"><a href="#brief">Brief</a><a href="#positive-stories">Positive</a><a href="#signal">Signal</a><a href="#market">Market</a><a href="#technical">Technical</a><a href="#solana">Solana</a><a href="#dex">DEX</a><a href="#hyperliquid">Hyperliquid</a><a href="#new-markets">Stocks</a><a href="#crossovers">Crossovers</a><a href="#treasuries">Treasuries</a><a href="#protocols">Protocols</a><a href="#yields">Yields</a><a href="#sectors">Sectors</a><a href="#upgrades">Upgrades</a><a href="#tx-econ">Fees</a><a href="#intelligence">Intel</a><a href="#competitive">Share</a><a href="#trade">Trade</a><a href="#news">News</a><a href="#briefing">Briefing</a></nav>
+
+<div class="nl-banner">
+  <div class="nl-text"><strong>Get daily Solana intelligence in your inbox.</strong> Key numbers + what they mean, every morning.</div>
+  <form class="nl-form" id="dash-nl-form" onsubmit="return dashSubscribe(event)">
+    <input type="email" class="nl-input" placeholder="your@email.com" required id="dash-nl-email">
+    <button type="submit" class="nl-btn">Subscribe</button>
+  </form>
+  <div id="dash-nl-msg" style="font-size:0.78rem;display:none"></div>
+</div>
+
+<div class="dash-section" id="brief">
+  <div class="section-title" onclick="toggleSection('brief')">Morning Brief<span class="section-toggle" id="toggle-brief">&#9662;</span></div>
+  <div class="section-body" id="body-brief">
+    <div class="section-sources"><span class="freshness" style="color:var(--green)" title="Data fetched: 2026-10-19 17:36 UTC">4m ago</span></div>
+    <div class="morning-brief">
+  <div class="brief-lede">
+    <div class="brief-kicker">Morning Command Center</div>
+    <h2>SOL RSI at 19 — deepest oversold reading in months — while JTO leads gainers at +4.2% and RWA is the only Solana sector posting positive 24h TVL. Drift issues recovery tokens after $295M hack rattles liquid staking flows.</h2>
+    <div class="brief-subline">
+      <span>Crypto Fear &amp; Greed Index: <strong>59 Greed</strong></span>
+      <span>HL listings: <strong>No new HL listings</strong></span>
+    </div>
+  </div>
+  <div class="data-health"><a class="health-pill health-ok" href="#market">
+  <strong>Market</strong><span>fresh</span>
+</a><a class="health-pill health-stale" href="#solana">
+  <strong>Solana</strong><span>stale</span>
+</a><a class="health-pill health-ok" href="#positive-stories">
+  <strong>News</strong><span>fresh</span>
+</a><a class="health-pill health-ok" href="#hyperliquid">
+  <strong>Hyperliquid</strong><span>fresh</span>
+</a><a class="health-pill health-ok" href="#new-markets">
+  <strong>Stocks/RWA</strong><span>fresh</span>
+</a><a class="health-pill health-ok" href="#treasuries">
+  <strong>Treasuries</strong><span>fresh</span>
+</a><a class="health-pill health-ok" href="#signal">
+  <strong>Claude</strong><span>ok</span>
+</a></div>
+  <div class="brief-grid"><a class="brief-card" href="#market">
+  <span>SOL</span>
+  <strong>$103.99 <span class="metric-change"><span style="color:var(--green)">&#9650; +2.0%</span></span></strong>
+</a><a class="brief-card" href="#market">
+  <span>ONDO</span>
+  <strong>$0.4310 <span class="metric-change"><span style="color:var(--green)">&#9650; +1.4%</span></span></strong>
+</a><a class="brief-card" href="#hyperliquid">
+  <span>HYPE</span>
+  <strong>$78.03 <span class="metric-change"><span style="color:var(--green)">&#9650; +0.9%</span></span></strong>
+</a><a class="brief-card" href="#solana">
+  <span>Solana TVL</span>
+  <strong>$6.12B</strong>
+</a><a class="brief-card" href="#dex">
+  <span>Spot DEX 24h</span>
+  <strong>$1.28B</strong>
+</a><a class="brief-card" href="#hyperliquid">
+  <span>HL Perp Vol</span>
+  <strong>$5.63B</strong>
+</a><a class="brief-card" href="#new-markets">
+  <span>Top Perp Mover</span>
+  <strong>NIL <span style="color:var(--green)">&#9650; +17.5%</span> on $3.88M vol</strong>
+</a><a class="brief-card" href="#new-markets">
+  <span>Tokenized Stocks</span>
+  <strong>OPENAI <span style="color:var(--green)">&#9650; +10.5%</span> <span class="muted">(PreStocks, $61.43K vol)</span></strong>
+</a></div>
+  <div class="names-watch">
+  <div class="radar-head">
+    <div>
+      <h4>Names to Watch</h4>
+      <div class="muted">Ranked across price action, news/narrative, Hyperliquid flow, DEX flow, tokenized-stock activity, and trade setup.</div>
+    </div>
+  </div>
+  <div class="watch-grid"><a class="watch-card" href="#hyperliquid">
+  <div class="watch-top">
+    <strong>SOL</strong>
+    <div class="watch-badges"><span>price</span><span>core watch</span><span>narrative</span></div>
+  </div>
+  <div class="watch-detail">+2.0% 24h</div>
+  <div class="watch-subdetail">Solana in morning watchlist</div>
+</a><a class="watch-card" href="#trade">
+  <div class="watch-top">
+    <strong>JTO</strong>
+    <div class="watch-badges"><span>price</span><span>trade setup</span></div>
+  </div>
+  <div class="watch-detail">+4.2% 24h</div>
+  <div class="watch-subdetail">Top performer at +4.2% 24h while Jito Liquid Staking TVL bottoms at $1.12B (-10.2% 7d). Price diverging from TVL — either smart money front-running a TVL recovery or a liquidity trap. High risk, high reward. Jito staking yield at 4.8% APY with $1.13B TVL provides fundamental floor.</div>
+</a><a class="watch-card" href="#hyperliquid">
+  <div class="watch-top">
+    <strong>BTC</strong>
+    <div class="watch-badges"><span>HL volume</span></div>
+  </div>
+  <div class="watch-detail">#1 HL perp volume, $2.56B</div>
+  
+</a><a class="watch-card" href="#trade">
+  <div class="watch-top">
+    <strong>ONDO</strong>
+    <div class="watch-badges"><span>core watch</span><span>trade setup</span></div>
+  </div>
+  <div class="watch-detail">Ondo in morning watchlist</div>
+  <div class="watch-subdetail">ONDO trending #7 on CoinGecko, +1.4% on the day. RWA sector is the only green Solana sector (+1.1% TVL 24h). JPMorgan JPM Coin on Ethereum validates the tokenized RWA narrative ONDO is built on. Macro institutional tailwind is directly supporting this sector.</div>
+</a><a class="watch-card" href="#hyperliquid">
+  <div class="watch-top">
+    <strong>ZEC</strong>
+    <div class="watch-badges"><span>price</span><span>HL volume</span></div>
+  </div>
+  <div class="watch-detail">+3.8% 24h</div>
+  <div class="watch-subdetail">#4 HL perp volume, $343.22M</div>
+</a></div>
+</div>
+  <div class="focus-strip"><a class="focus-link" href="#positive-stories">
+  <span>Read the top positive crypto stories</span>
+  <small>38 total stories scanned</small>
+</a><a class="focus-link" href="#dex">
+  <span>Track Solana DEX flow</span>
+  <small>$1.28B spot volume</small>
+</a><a class="focus-link" href="#new-markets">
+  <span>Check RWA and tokenized-stock action</span>
+  <small>OPENAI <span style="color:var(--green)">&#9650; +10.5%</span> <span class="muted">(PreStocks, $61.43K vol)</span></small>
+</a><a class="focus-link" href="#hyperliquid">
+  <span>Scan Hyperliquid leverage flow</span>
+  <small>$5.63B 24h volume</small>
+</a><a class="focus-link" href="#trade">
+  <span>Jump to the trade setup</span>
+  <small>Conviction and watchlist</small>
+</a></div>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="positive-stories">
+  <div class="section-title" onclick="toggleSection('positive-stories')">Top 5 Positive Crypto Stories<span class="section-toggle" id="toggle-positive-stories">&#9662;</span></div>
+  <div class="section-body" id="body-positive-stories">
+    <div class="section-sources">Sources: <a href="https://cryptopanic.com" target="_blank">CryptoPanic</a> &middot; RSS feeds<span class="freshness" style="color:var(--green)" title="Data fetched: 2026-10-19 17:37 UTC">3m ago</span></div>
+    <div class="panel-section">
+  <div class="brief-note">Ranked from CryptoPanic sentiment when available, then boosted for high-signal themes like RWA, tokenized equities, Hyperliquid, Solana, stablecoins, ETFs, launches, and funding.</div>
+  <div class="positive-list"><article class="positive-story">
+  <div class="positive-rank">1</div>
+  <div>
+    <a href="https://www.theblock.co/news/business/2026-10-19-skyai-sells-off-entire-solana-treasury-launches-201-million-buyback-421037" target="_blank" rel="noopener">SkyAI sells off entire Solana treasury as it launches $201 million buyback</a>
+    <div class="positive-meta">
+      <span>The Block</span>
+      <span>Solana, RWA</span>
+      <span>editor-ranked</span>
+    </div>
+  </div>
+</article><article class="positive-story">
+  <div class="positive-rank">2</div>
+  <div>
+    <a href="https://www.dlnews.com/articles/opinion/opinion-lord-kulveer-ranger-on-digital-assets/" target="_blank" rel="noopener">Lord Kulveer Ranger on digital assets, digital pound, and stablecoins</a>
+    <div class="positive-meta">
+      <span>DL News</span>
+      <span>Stablecoin</span>
+      <span>editor-ranked</span>
+    </div>
+  </div>
+</article><article class="positive-story">
+  <div class="positive-rank">3</div>
+  <div>
+    <a href="https://solana.com/news/solana-changelog-october-8-2026" target="_blank" rel="noopener">Solana Changelog: October 8, 2026</a>
+    <div class="positive-meta">
+      <span>Solana Foundation</span>
+      <span>Solana</span>
+      <span>editor-ranked</span>
+    </div>
+  </div>
+</article><article class="positive-story">
+  <div class="positive-rank">4</div>
+  <div>
+    <a href="https://www.dlnews.com/articles/defi/defi-rides-pokemon-trading-card-boom/" target="_blank" rel="noopener">DeFi rides Pokémon trading card boom as onchain marketplaces bring in $11m</a>
+    <div class="positive-meta">
+      <span>DL News</span>
+      <span>DeFi</span>
+      <span>editor-ranked</span>
+    </div>
+  </div>
+</article><article class="positive-story">
+  <div class="positive-rank">5</div>
+  <div>
+    <a href="https://www.dlnews.com/articles/defi/uniswap-dao-votes-to-take-back-loaned-uni-tokens/" target="_blank" rel="noopener">Uniswap DAO votes to take back $42m of governance tokens loaned to delegates</a>
+    <div class="positive-meta">
+      <span>DL News</span>
+      <span>DeFi</span>
+      <span>editor-ranked</span>
+    </div>
+  </div>
+</article></div>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="signal">
+  <div class="section-title" onclick="toggleSection('signal')">The Signal<span class="section-toggle" id="toggle-signal">&#9662;</span></div>
+  <div class="section-body" id="body-signal">
+    
+    <div class="panel-section"><h4>Market Context</h4><div class="signal-context">SOL is trading at $103.99 with an RSI of 19 — a level that historically precedes mean-reversion bounces, not continued drawdowns. Price is above the 200-day MA ($87.71) but well below the 50-day ($109.36), creating a technically compressed setup. The +2.0% 24h move is outperforming BTC (+1.0%) and ETH (+1.2%), and JTO&#x27;s +4.2% pop suggests liquid staking natives are beginning to reprice risk. Fear &amp; Greed at 59 (Greed) is inconsistent with an RSI-19 asset — that divergence is the headline.
+
+Across Solana&#x27;s ecosystem, the picture is mixed-to-bearish on flows but selectively bullish on structure. TVL fell 1.5% to $6.12B on the day, and liquid staking — the largest sector at $6.94B — dropped 4.1% in 24h. The Drift $295M hack is the proximate cause of staking pool outflows (-10.5% in 24h for the staking pool sector). However, RWA protocols bucked the trend: OnRe and Huma both posted positive 24h TVL, with the RWA sector up +1.1% collectively. Stablecoins on Solana remain at $66.13B — a structural indicator that capital has not left the chain, it has rotated defensively.
+
+Macro is providing a headwind: US bond yields reversed higher after BTC was rejected at $83K, and BTC dominance is at 59.6% — still in altcoin-unfavorable territory. Yet Solana&#x27;s DEX activity showed sharp volume spikes in Orca (+111%), Raydium AMM (+51.4%), and Manifest Trade (+63.9%), signaling that on-chain traders are active even as headline TVL softens. The stablecoin wall at $66B is dry powder. The question is what unlocks it.</div><h4 style="margin-top:16px">&#9888; Divergence Alerts</h4><div class="div-alert" style="border-left:3px solid var(--red)">
+  <div><strong>RSI 19 vs Fear &amp; Greed 59</strong> <span class="div-sev" style="color:var(--red)">high</span></div>
+  <div class="muted">SOL&#x27;s 14-day RSI is at 19 — deeply oversold — while the broader Fear &amp; Greed index reads 59 (Greed). This is a rare and significant divergence: the market feels greedy but SOL is pricing maximum fear locally. Historically this setup precedes sharp reversions. Watch for a close above $109 (50-day MA) as confirmation.</div>
+</div><div class="div-alert" style="border-left:3px solid var(--red)">
+  <div><strong>Liquid Staking TVL Down 4.1% While JTO Pumps 4.2%</strong> <span class="div-sev" style="color:var(--red)">high</span></div>
+  <div class="muted">Jito Liquid Staking TVL fell 4.1% in 24h (to $1.12B) and 10.2% over 7 days, yet JTO token is the top performer in today&#x27;s data at +4.2%. This is a classic price-leads-TVL divergence. Either TVL is bottoming and smart money is front-running a recovery, or JTO is a pump without fundamental backing. Drift hack contagion is likely the TVL driver — monitor if Jito-specific outflows reverse.</div>
+</div><div class="div-alert" style="border-left:3px solid #f97316">
+  <div><strong>Stablecoin Supply at $66B While DEX TVL Falls</strong> <span class="div-sev" style="color:#f97316">medium</span></div>
+  <div class="muted">Solana stablecoins sit at $66.13B — historically elevated — while DEX TVL dropped 1.3% and total ecosystem TVL is down 1.5%. Capital is on-chain but not deployed. This is a coiled spring setup if a catalyst emerges (Breakpoint announcement, regulatory clarity, BTC breakout above $83K).</div>
+</div><div class="div-alert" style="border-left:3px solid #f97316">
+  <div><strong>Orca Volume +111% While PumpSwap Drops 42%</strong> <span class="div-sev" style="color:#f97316">medium</span></div>
+  <div class="muted">Orca DEX volume surged 111% to $250.9M in 24h — now the top spot DEX — while PumpSwap collapsed 42.4% to $135.5M. This signals a rotation from meme-driven retail flow (pump.fun ecosystem) toward concentrated liquidity professional DEX activity. Institutional or sophisticated traders may be repositioning.</div>
+</div><div class="div-alert" style="border-left:3px solid #f97316">
+  <div><strong>RWA Sector Positive While All Others Decline</strong> <span class="div-sev" style="color:#f97316">medium</span></div>
+  <div class="muted">RWA is the only major Solana sector with positive 24h TVL (+1.1%), while liquid staking (-4.1%), lending (-2.4%), DEXs (-1.3%), and derivatives (-3.1%) all posted outflows. OnRe (+0.1%) and Huma (+2.3%) are leading. Combined with ONDO trending on CoinGecko and JPMorgan&#x27;s JPM Coin launching on Ethereum, institutional real-world asset tokenization is the most active narrative today.</div>
+</div><div class="div-alert" style="border-left:3px solid var(--red)">
+  <div><strong>Drift $295M Hack — Staking Pool Sector Crashes 10.5%</strong> <span class="div-sev" style="color:var(--red)">high</span></div>
+  <div class="muted">The staking pool sector fell 10.5% in 24h — the largest single-sector decline in today&#x27;s data — directly correlated with the Drift hack news. Drift is issuing recovery tokens rather than direct reimbursement, which introduces a new token overhang risk. This is a contagion vector for adjacent liquid staking protocols.</div>
+</div><h4 style="margin-top:16px">&#128225; Story Angles</h4><div class="narr-item"><span class="narr-arrow">&#9656;</span> RSI 19 and $66B in stablecoins sitting idle: Is Solana the most coiled trade in crypto right now?</div><div class="narr-item"><span class="narr-arrow">&#9656;</span> Drift&#x27;s $295M hack and recovery token issuance: What does this mean for liquid staking protocol risk models on Solana?</div><div class="narr-item"><span class="narr-arrow">&#9656;</span> RWA is the only green sector on Solana — with JPMorgan on Ethereum and OnRe/Huma holding TVL, is the institutional money finally choosing its lane?</div><div class="narr-item"><span class="narr-arrow">&#9656;</span> Orca volume +111% in a single day: Who is trading and what are they buying? Concentrated liquidity providers are back.</div><div class="narr-item"><span class="narr-arrow">&#9656;</span> Geo-Aware Leader Schedule SIMD-0675: Solana&#x27;s next performance upgrade and what it means for global validator economics.</div><h4 style="margin-top:16px">&#9673; Key Data Relationships</h4><div class="signal-context">The $66.13B stablecoin supply on Solana against a 1.5% TVL decline is the most important data relationship today — capital is parked, not exited. Combine that with SOL&#x27;s RSI-19 technical floor and Orca&#x27;s 111% volume spike, and the setup reads as accumulation noise before a directional move, not distribution.</div></div>
+  </div>
+</div>
+<div class="dash-section" id="market">
+  <div class="section-title" onclick="toggleSection('market')">Market Overview<span class="section-toggle" id="toggle-market">&#9662;</span></div>
+  <div class="section-body" id="body-market">
+    <div class="section-sources">Sources: <a href="https://www.coingecko.com" target="_blank">CoinGecko</a> &middot; <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank">Fear &amp; Greed Index</a><span class="freshness" style="color:var(--green)" title="Data fetched: 2026-10-19 17:36 UTC">4m ago</span></div>
+    <div class="panel-section">
+  <div class="market-top">
+    <div class="market-stats-col">
+      <div class="stats-row">
+        <div class="stat"><div class="stat-label">Total Market Cap</div>
+          <div class="stat-value">$2.76T</div>
+          <div><span style="color:var(--red)">&#9660; -0.7%</span> 24h</div>
+          <div><span class="wow" style="color:var(--green)">&#9650; +1.9% WoW</span></div>
+        </div>
+        <div class="stat"><div class="stat-label">BTC Dominance</div>
+          <div class="stat-value">59.6%</div>
+        </div>
+        <div class="stat"><div class="stat-label">SOL Dominance</div>
+          <div class="stat-value">2.22%</div>
+          <div><span class="wow" style="color:var(--muted)">&#8211; +0.0% WoW</span></div>
+        </div>
+        <div class="stat"><div class="stat-label">SOL/BTC</div>
+          <div class="stat-value">0.001270</div>
+        </div>
+      </div>
+    </div>
+    <div class="fg-hero">
+      <div class="fg-gauge"><svg width="110" height="75" viewBox="0 0 110 75">
+  <path d="M 19 60 A 36 36 0 0 1 91 60" fill="none" stroke="#1e1e2e" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 19 60 A 36 36 0 1 1 65.0 25.4" fill="none" stroke="#22c55e" stroke-width="8" stroke-linecap="round"/>
+  <text x="55" y="52" text-anchor="middle" fill="#22c55e" font-size="20" font-weight="700">59</text>
+</svg></div>
+      <div class="fg-info">
+        <div class="fg-label-text">Greed</div>
+        <div class="fg-yesterday">Yesterday: <strong>53</strong></div>
+      </div>
+    </div>
+  </div>
+  <div class="grid grid-prices"><div class="card price-card">
+  <div class="price-header">
+    <div>
+      <div class="price-name">BTC <span class="muted">Bitcoin</span></div>
+      <div class="price-val">$81,881.00</div>
+      <div><span style="color:var(--green)">&#9650; +1.0%</span> <span class="muted" style="font-size:0.7rem">24h</span></div>
+    </div>
+    <div class="sparkline-wrap"><svg width="100" height="28" viewBox="0 0 100 28" style="vertical-align:middle"><polyline points="2.0,12.8 5.6,15.7 9.1,4.6 12.7,5.8 16.2,5.1 19.8,3.9 23.3,2.0 26.9,4.5 30.4,17.3 34.0,20.6 37.6,20.8 41.1,26.0 44.7,16.6 48.2,13.5 51.8,16.1 55.3,15.5 58.9,22.3 62.4,19.5 66.0,21.7 69.6,20.8 73.1,24.2 76.7,23.2 80.2,19.3 83.8,16.8 87.3,25.7 90.9,19.5 94.4,10.6 98.0,13.6" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="price-7d"><span style="color:var(--red)">&#9660; -0.9%</span> <span class="muted" style="font-size:0.7rem">7d</span></div>
+</div><div class="card price-card">
+  <div class="price-header">
+    <div>
+      <div class="price-name">ETH <span class="muted">Ethereum</span></div>
+      <div class="price-val">$2,398.17</div>
+      <div><span style="color:var(--green)">&#9650; +1.2%</span> <span class="muted" style="font-size:0.7rem">24h</span></div>
+    </div>
+    <div class="sparkline-wrap"><svg width="100" height="28" viewBox="0 0 100 28" style="vertical-align:middle"><polyline points="2.0,2.5 5.6,9.5 9.1,2.0 12.7,5.1 16.2,2.7 19.8,3.1 23.3,2.5 26.9,3.7 30.4,12.8 34.0,17.7 37.6,23.2 41.1,25.7 44.7,15.2 48.2,11.8 51.8,13.6 55.3,10.3 58.9,15.5 62.4,16.7 66.0,16.6 69.6,14.5 73.1,20.2 76.7,21.7 80.2,18.1 83.8,17.7 87.3,26.0 90.9,21.3 94.4,16.0 98.0,16.5" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="price-7d"><span style="color:var(--red)">&#9660; -5.0%</span> <span class="muted" style="font-size:0.7rem">7d</span></div>
+</div><div class="card price-card">
+  <div class="price-header">
+    <div>
+      <div class="price-name">SOL <span class="muted">Solana</span></div>
+      <div class="price-val">$103.99</div>
+      <div><span style="color:var(--green)">&#9650; +2.0%</span> <span class="muted" style="font-size:0.7rem">24h</span></div>
+    </div>
+    <div class="sparkline-wrap"><svg width="100" height="28" viewBox="0 0 100 28" style="vertical-align:middle"><polyline points="2.0,2.6 5.6,8.5 9.1,2.0 12.7,8.4 16.2,4.0 19.8,6.3 23.3,2.4 26.9,5.6 30.4,14.2 34.0,16.1 37.6,18.7 41.1,24.9 44.7,11.9 48.2,11.1 51.8,11.4 55.3,7.2 58.9,18.2 62.4,16.7 66.0,15.4 69.6,14.7 73.1,21.7 76.7,22.1 80.2,19.0 83.8,18.4 87.3,26.0 90.9,18.8 94.4,11.5 98.0,14.4" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="price-7d"><span style="color:var(--red)">&#9660; -4.1%</span> <span class="muted" style="font-size:0.7rem">7d</span></div>
+</div><div class="card price-card">
+  <div class="price-header">
+    <div>
+      <div class="price-name">ONDO <span class="muted">Ondo</span></div>
+      <div class="price-val">$0.4310</div>
+      <div><span style="color:var(--green)">&#9650; +1.4%</span> <span class="muted" style="font-size:0.7rem">24h</span></div>
+    </div>
+    <div class="sparkline-wrap"><svg width="100" height="28" viewBox="0 0 100 28" style="vertical-align:middle"><polyline points="2.0,2.0 5.6,5.4 9.1,3.4 12.7,10.8 16.2,10.0 19.8,10.8 23.3,9.3 26.9,11.7 30.4,17.1 34.0,17.8 37.6,21.9 41.1,25.1 44.7,13.1 48.2,10.8 51.8,11.2 55.3,8.8 58.9,15.2 62.4,15.1 66.0,14.6 69.6,15.6 73.1,22.0 76.7,21.9 80.2,20.6 83.8,20.9 87.3,26.0 90.9,23.9 94.4,22.3 98.0,22.6" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="price-7d"><span style="color:var(--red)">&#9660; -13.0%</span> <span class="muted" style="font-size:0.7rem">7d</span></div>
+</div><div class="card price-card">
+  <div class="price-header">
+    <div>
+      <div class="price-name">JTO <span class="muted">Jito</span></div>
+      <div class="price-val">$0.4436</div>
+      <div><span style="color:var(--green)">&#9650; +4.2%</span> <span class="muted" style="font-size:0.7rem">24h</span></div>
+    </div>
+    <div class="sparkline-wrap"><svg width="100" height="28" viewBox="0 0 100 28" style="vertical-align:middle"><polyline points="2.0,7.2 5.6,7.4 9.1,4.7 12.7,5.1 16.2,2.3 19.8,2.4 23.3,2.0 26.9,5.7 30.4,9.6 34.0,12.2 37.6,18.4 41.1,19.4 44.7,16.6 48.2,15.9 51.8,15.3 55.3,13.9 58.9,17.2 62.4,17.8 66.0,16.0 69.6,18.0 73.1,21.8 76.7,22.1 80.2,22.3 83.8,22.2 87.3,26.0 90.9,23.8 94.4,22.3 98.0,22.9" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="price-7d"><span style="color:var(--red)">&#9660; -15.8%</span> <span class="muted" style="font-size:0.7rem">7d</span></div>
+</div><div class="card price-card">
+  <div class="price-header">
+    <div>
+      <div class="price-name">BONK <span class="muted">Bonk</span></div>
+      <div class="price-val">$0.000003</div>
+      <div><span style="color:var(--green)">&#9650; +0.9%</span> <span class="muted" style="font-size:0.7rem">24h</span></div>
+    </div>
+    <div class="sparkline-wrap"><svg width="100" height="28" viewBox="0 0 100 28" style="vertical-align:middle"><polyline points="2.0,2.0 5.6,4.6 9.1,3.0 12.7,6.9 16.2,5.9 19.8,5.0 23.3,4.1 26.9,8.7 30.4,10.9 34.0,11.9 37.6,17.8 41.1,20.0 44.7,13.5 48.2,14.4 51.8,13.1 55.3,12.5 58.9,17.5 62.4,16.2 66.0,15.5 69.6,17.2 73.1,21.9 76.7,21.7 80.2,21.0 83.8,22.2 87.3,26.0 90.9,24.3 94.4,21.9 98.0,23.7" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="price-7d"><span style="color:var(--red)">&#9660; -12.0%</span> <span class="muted" style="font-size:0.7rem">7d</span></div>
+</div><div class="card price-card">
+  <div class="price-header">
+    <div>
+      <div class="price-name">HYPE <span class="muted">Hyperliquid</span></div>
+      <div class="price-val">$78.03</div>
+      <div><span style="color:var(--green)">&#9650; +0.9%</span> <span class="muted" style="font-size:0.7rem">24h</span></div>
+    </div>
+    <div class="sparkline-wrap"><svg width="100" height="28" viewBox="0 0 100 28" style="vertical-align:middle"><polyline points="2.0,2.0 5.6,6.5 9.1,5.6 12.7,7.0 16.2,10.9 19.8,8.5 23.3,6.4 26.9,9.6 30.4,14.1 34.0,12.3 37.6,15.2 41.1,18.7 44.7,11.2 48.2,6.9 51.8,10.8 55.3,8.7 58.9,18.3 62.4,14.9 66.0,16.3 69.6,16.1 73.1,20.9 76.7,22.3 80.2,18.9 83.8,19.0 87.3,26.0 90.9,19.8 94.4,15.2 98.0,17.6" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="price-7d"><span style="color:var(--red)">&#9660; -7.0%</span> <span class="muted" style="font-size:0.7rem">7d</span></div>
+</div><div class="card price-card">
+  <div class="price-header">
+    <div>
+      <div class="price-name">HNT <span class="muted">Helium</span></div>
+      <div class="price-val">$0.4016</div>
+      <div><span style="color:var(--green)">&#9650; +1.5%</span> <span class="muted" style="font-size:0.7rem">24h</span></div>
+    </div>
+    <div class="sparkline-wrap"><svg width="100" height="28" viewBox="0 0 100 28" style="vertical-align:middle"><polyline points="2.0,4.3 5.6,4.8 9.1,3.8 12.7,7.0 16.2,6.5 19.8,6.9 23.3,2.0 26.9,6.7 30.4,12.5 34.0,13.8 37.6,16.8 41.1,16.7 44.7,10.6 48.2,12.9 51.8,14.4 55.3,13.4 58.9,16.7 62.4,18.6 66.0,16.1 69.6,18.2 73.1,22.0 76.7,19.3 80.2,20.6 83.8,22.4 87.3,26.0 90.9,26.0 94.4,21.5 98.0,22.7" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="price-7d"><span style="color:var(--red)">&#9660; -12.8%</span> <span class="muted" style="font-size:0.7rem">7d</span></div>
+</div><div class="card price-card">
+  <div class="price-header">
+    <div>
+      <div class="price-name">RNDR <span class="muted">Render</span></div>
+      <div class="price-val">$1.79</div>
+      <div><span style="color:var(--green)">&#9650; +0.9%</span> <span class="muted" style="font-size:0.7rem">24h</span></div>
+    </div>
+    <div class="sparkline-wrap"><svg width="100" height="28" viewBox="0 0 100 28" style="vertical-align:middle"><polyline points="2.0,12.1 5.6,6.4 9.1,2.0 12.7,8.0 16.2,10.1 19.8,10.3 23.3,10.1 26.9,13.2 30.4,16.7 34.0,16.8 37.6,19.5 41.1,22.3 44.7,14.2 48.2,14.6 51.8,16.8 55.3,14.5 58.9,18.3 62.4,16.5 66.0,17.0 69.6,18.2 73.1,22.7 76.7,21.6 80.2,21.4 83.8,22.4 87.3,26.0 90.9,24.8 94.4,23.3 98.0,24.6" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="price-7d"><span style="color:var(--red)">&#9660; -10.9%</span> <span class="muted" style="font-size:0.7rem">7d</span></div>
+</div><div class="card price-card">
+  <div class="price-header">
+    <div>
+      <div class="price-name">ZEC <span class="muted">Zcash</span></div>
+      <div class="price-val">$1,129.29</div>
+      <div><span style="color:var(--green)">&#9650; +3.8%</span> <span class="muted" style="font-size:0.7rem">24h</span></div>
+    </div>
+    <div class="sparkline-wrap"><svg width="100" height="28" viewBox="0 0 100 28" style="vertical-align:middle"><polyline points="2.0,5.1 5.6,10.7 9.1,8.5 12.7,10.3 16.2,9.9 19.8,7.4 23.3,2.0 26.9,4.5 30.4,14.8 34.0,18.2 37.6,21.9 41.1,25.6 44.7,11.6 48.2,6.4 51.8,8.7 55.3,5.8 58.9,17.0 62.4,17.9 66.0,16.4 69.6,13.1 73.1,20.6 76.7,20.9 80.2,19.0 83.8,20.0 87.3,26.0 90.9,21.4 94.4,14.6 98.0,18.0" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+  <div class="price-7d"><span style="color:var(--red)">&#9660; -10.0%</span> <span class="muted" style="font-size:0.7rem">7d</span></div>
+</div></div>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="technical">
+  <div class="section-title" onclick="toggleSection('technical')">SOL Technical Analysis<span class="section-toggle" id="toggle-technical">&#9662;</span></div>
+  <div class="section-body" id="body-technical">
+    <div class="section-sources">Source: <a href="https://www.coingecko.com/en/coins/solana" target="_blank">CoinGecko</a><span class="freshness" style="color:var(--green)" title="Data fetched: 2026-10-19 17:36 UTC">4m ago</span></div>
+    <div class="panel-section">
+  <div class="tech-hero">
+  <div class="tech-hero-header">
+    <div>
+      <div class="stat-label">SOL/USD</div>
+      <div class="tech-hero-price">$104.03</div>
+    </div>
+    <div class="muted" style="font-size:0.72rem">7-day price action</div>
+  </div>
+  <div class="tech-hero-chart"><svg width="100%" height="220" viewBox="0 0 760 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="display:block"><defs><linearGradient id="sg_7264" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--red)" stop-opacity="0.25"/><stop offset="1" stop-color="var(--red)" stop-opacity="0"/></linearGradient></defs><polygon points="2,218.0 2.0,7.4 30.0,60.4 58.0,2.0 86.0,59.5 114.0,19.7 142.0,40.5 170.0,5.9 198.0,34.0 226.0,111.7 254.0,128.7 282.0,152.4 310.0,207.7 338.0,91.3 366.0,84.0 394.0,86.7 422.0,48.9 450.0,147.6 478.0,134.4 506.0,122.2 534.0,116.4 562.0,179.4 590.0,183.2 618.0,154.6 646.0,149.3 674.0,218.0 702.0,153.6 730.0,87.3 758.0,113.4 758.0,218.0" fill="url(#sg_7264)"/><polyline points="2.0,7.4 30.0,60.4 58.0,2.0 86.0,59.5 114.0,19.7 142.0,40.5 170.0,5.9 198.0,34.0 226.0,111.7 254.0,128.7 282.0,152.4 310.0,207.7 338.0,91.3 366.0,84.0 394.0,86.7 422.0,48.9 450.0,147.6 478.0,134.4 506.0,122.2 534.0,116.4 562.0,179.4 590.0,183.2 618.0,154.6 646.0,149.3 674.0,218.0 702.0,153.6 730.0,87.3 758.0,113.4" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+</div>
+  <div class="stats-row" style="margin-top:16px">
+    <div class="stat"><div class="stat-label">50-Day MA</div><div class="stat-value">$109.36</div></div>
+    <div class="stat"><div class="stat-label">200-Day MA</div><div class="stat-value">$87.71</div></div>
+    <div class="stat"><div class="stat-label">RSI (14)</div><div class="stat-value" style="color:var(--red)">19.0</div><div style="margin-top:4px">
+  <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--muted)"><span>Oversold</span><span>Overbought</span></div>
+  <div style="background:var(--surface2);height:8px;border-radius:4px;position:relative;margin-top:2px">
+    <div style="position:absolute;left:30%;top:0;width:1px;height:8px;background:#27272a"></div>
+    <div style="position:absolute;left:70%;top:0;width:1px;height:8px;background:#27272a"></div>
+    <div style="position:absolute;left:19.0%;top:-2px;width:12px;height:12px;border-radius:50%;background:var(--red);transform:translateX(-6px)"></div>
+  </div>
+</div></div>
+    <div class="stat"><div class="stat-label">MA Signal</div><div class="stat-value" style="font-size:0.95rem">Mixed</div></div>
+  </div>
+  <div style="margin-top:16px">
+    <span class="stat-label">52-Week Range</span>
+    <div style="margin-top:6px"><svg width="400" height="24" viewBox="0 0 400 24">
+  <rect x="0" y="8" width="400" height="6" fill="#1e1e2e" rx="3"/>
+  <rect x="0" y="8" width="121" height="6" fill="#9333ea" rx="3"/>
+  <circle cx="121" cy="11" r="6" fill="#9333ea"/>
+  <text x="0" y="22" fill="#71717a" font-size="9">$62</text>
+  <text x="400" y="22" text-anchor="end" fill="#71717a" font-size="9">$200</text>
+</svg></div>
+  </div>
+  <details class="collapse" style="margin-top:14px">
+    <summary>Monthly returns (last 18 months)</summary>
+    <div style="margin-top:6px;max-width:640px"><svg width="100%" viewBox="0 0 378 92" style="max-height:100px" xmlns="http://www.w3.org/2000/svg"><line x1="26" y1="44" x2="372" y2="44" stroke="#27272a" stroke-width="1"/><text x="24" y="47" text-anchor="end" fill="#71717a" font-size="8">0</text><text x="24" y="13" text-anchor="end" fill="#52525b" font-size="8">+39%</text><text x="24" y="81" text-anchor="end" fill="#52525b" font-size="8">-39%</text><text x="41" y="90" text-anchor="middle" fill="#9333ea" font-size="9" font-weight="600">25</text><rect x="30" y="44" width="22" height="2" fill="#ef4444" rx="2" opacity="0.9"><title>2025-10: -1.8%</title></rect><text x="41" y="55" text-anchor="middle" fill="#71717a" font-size="8">O</text><rect x="56" y="44" width="22" height="23" fill="#ef4444" rx="2" opacity="0.9"><title>2025-11: -27.3%</title></rect><text x="67" y="55" text-anchor="middle" fill="#71717a" font-size="8">N</text><rect x="82" y="44" width="22" height="6" fill="#ef4444" rx="2" opacity="0.9"><title>2025-12: -6.7%</title></rect><text x="93" y="55" text-anchor="middle" fill="#71717a" font-size="8">D</text><line x1="106" y1="8" x2="106" y2="82" stroke="#27272a" stroke-width="1" stroke-dasharray="2,3"/><text x="119" y="90" text-anchor="middle" fill="#9333ea" font-size="9" font-weight="600">26</text><rect x="108" y="44" width="22" height="5" fill="#ef4444" rx="2" opacity="0.9"><title>2026-01: -5.7%</title></rect><text x="119" y="55" text-anchor="middle" fill="#71717a" font-size="8">J</text><rect x="134" y="44" width="22" height="19" fill="#ef4444" rx="2" opacity="0.9"><title>2026-02: -22.2%</title></rect><text x="145" y="55" text-anchor="middle" fill="#71717a" font-size="8">F</text><rect x="160" y="44" width="22" height="2" fill="#ef4444" rx="2" opacity="0.9"><title>2026-03: -2.6%</title></rect><text x="171" y="55" text-anchor="middle" fill="#71717a" font-size="8">M</text><rect x="186" y="44" width="22" height="2" fill="#22c55e" rx="2" opacity="0.9"><title>2026-04: -0.0%</title></rect><text x="197" y="55" text-anchor="middle" fill="#71717a" font-size="8">A</text><rect x="212" y="44" width="22" height="2" fill="#ef4444" rx="2" opacity="0.9"><title>2026-05: -0.4%</title></rect><text x="223" y="55" text-anchor="middle" fill="#71717a" font-size="8">M</text><rect x="238" y="44" width="22" height="8" fill="#ef4444" rx="2" opacity="0.9"><title>2026-06: -8.9%</title></rect><text x="249" y="55" text-anchor="middle" fill="#71717a" font-size="8">J</text><rect x="264" y="43" width="22" height="2" fill="#22c55e" rx="2" opacity="0.9"><title>2026-07: +1.2%</title></rect><text x="275" y="55" text-anchor="middle" fill="#71717a" font-size="8">J</text><rect x="290" y="10" width="22" height="34" fill="#22c55e" rx="2" opacity="0.9"><title>2026-08: +39.7%</title></rect><text x="301" y="55" text-anchor="middle" fill="#71717a" font-size="8">A</text><rect x="316" y="31" width="22" height="13" fill="#22c55e" rx="2" opacity="0.9"><title>2026-09: +15.6%</title></rect><text x="327" y="55" text-anchor="middle" fill="#71717a" font-size="8">S</text><rect x="342" y="44" width="22" height="10" fill="#ef4444" rx="2" opacity="0.9"><title>2026-10: -11.9%</title></rect><text x="353" y="55" text-anchor="middle" fill="#71717a" font-size="8">O</text></svg></div>
+  </details>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="solana">
+  <div class="section-title" onclick="toggleSection('solana')">Solana Ecosystem<span class="section-toggle" id="toggle-solana">&#9662;</span></div>
+  <div class="section-body" id="body-solana">
+    <div class="section-sources">Sources: <a href="https://defillama.com/chain/Solana" target="_blank">DeFiLlama</a> &middot; <a href="https://solscan.io" target="_blank">Solscan</a> &middot; <a href="https://defillama.com/stablecoins/Solana" target="_blank">Stablecoins</a><span class="freshness" style="color:var(--red)" title="Data fetched: 2026-10-12 20:22 UTC">6d ago</span></div>
+    <div class="panel-section">
+  <h4>Primary Ecosystem</h4>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Solana TVL</div>
+      <div class="stat-value">$6.12B</div>
+      <div><span style="color:var(--red)">&#9660; -1.5%</span> 24h</div>
+      <div><span class="wow" style="color:var(--muted)">&#8211; +0.0% WoW</span></div>
+    </div>
+    <div class="stat"><div class="stat-label">Spot DEX Volume</div>
+      <div class="stat-value">$1.28B</div>
+      <div><span style="color:var(--red)">&#9660; -0.7%</span> 24h</div>
+    </div>
+    
+    <div class="stat"><div class="stat-label">Fees 24h</div>
+      <div class="stat-value">$11.30M</div>
+      <div><span style="color:var(--red)">&#9660; -5.3%</span></div>
+      <div><span class="wow" style="color:var(--muted)">&#8211; +0.0% WoW</span></div>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Stablecoins on Solana</div>
+      <div class="stat-value">$66.13B</div>
+      <div><span class="wow" style="color:var(--muted)">&#8211; +0.0% WoW</span></div>
+    </div>
+  </div>
+
+  <h4 style="margin-top:20px">Network Activity</h4>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Daily Transactions</div>
+      <div class="stat-value">480M</div>
+      <div class="muted">Estimated from TPS</div>
+    </div>
+    <div class="stat"><div class="stat-label">TPS (Total)</div>
+      <div class="stat-value">5554.9</div>
+      <div class="muted">Epoch 1055</div>
+      <div><span class="wow" style="color:var(--muted)">&#8211; +0.0% WoW</span></div>
+    </div>
+    <div class="stat"><div class="stat-label">TPS (Non-Vote)</div>
+      <div class="stat-value">2490.6</div>
+      <div class="muted">55.2% vote</div>
+    </div>
+  </div>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="dex">
+  <div class="section-title" onclick="toggleSection('dex')">DEX Volume<span class="section-toggle" id="toggle-dex">&#9662;</span></div>
+  <div class="section-body" id="body-dex">
+    <div class="section-sources">Source: <a href="https://defillama.com/dexs/chain/Solana" target="_blank">DeFiLlama DEXs</a><span class="freshness" style="color:var(--red)" title="Data fetched: 2026-10-12 20:22 UTC">6d ago</span></div>
+    <div class="panel-section">
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Spot DEX 24h</div><div class="stat-value">$1.28B</div><div><span style="color:var(--red)">&#9660; -0.7%</span> 1d</div></div>
+    
+    
+  </div>
+  <div class="dex-flow">
+  <div class="radar-head">
+    <div>
+      <h4>Solana DEX Flow</h4>
+      <div class="muted">Why it matters: DEX volume shows where users are actually trading, not just talking. Venue share and acceleration help spot where liquidity is rotating.</div>
+    </div>
+  </div>
+  <div class="dex-flow-grid"><div class="dex-flow-card">
+  <div class="dex-flow-top"><strong>Orca DEX</strong><span>volume leader</span></div>
+  <div class="dex-flow-value">$250.95M</div>
+  <div class="dex-flow-meta"><span style="color:var(--green)">&#9650; +111.0%</span> 1d <span>19.7% share</span></div>
+</div><div class="dex-flow-card">
+  <div class="dex-flow-top"><strong>BisonFi</strong><span>volume leader</span></div>
+  <div class="dex-flow-value">$163.16M</div>
+  <div class="dex-flow-meta"><span style="color:var(--green)">&#9650; +4.2%</span> 1d <span>12.8% share</span></div>
+</div><div class="dex-flow-card">
+  <div class="dex-flow-top"><strong>pump.fun</strong><span>volume leader</span></div>
+  <div class="dex-flow-value">$160.84M</div>
+  <div class="dex-flow-meta"><span style="color:var(--green)">&#9650; +2.6%</span> 1d <span>12.6% share</span></div>
+</div><div class="dex-flow-card">
+  <div class="dex-flow-top"><strong>Raydium AMM</strong><span>volume leader</span></div>
+  <div class="dex-flow-value">$160.59M</div>
+  <div class="dex-flow-meta"><span style="color:var(--green)">&#9650; +51.4%</span> 1d <span>12.6% share</span></div>
+</div></div>
+  <div class="dex-movers"><span class="muted">Fastest 1d volume growth:</span><span class="dex-mover-tag">
+  <strong>Orca DEX</strong> <span style="color:var(--green)">&#9650; +111.0%</span> <span>$250.95M</span>
+</span><span class="dex-mover-tag">
+  <strong>Manifest Trade</strong> <span style="color:var(--green)">&#9650; +63.9%</span> <span>$111.68M</span>
+</span><span class="dex-mover-tag">
+  <strong>Deriverse</strong> <span style="color:var(--green)">&#9650; +63.8%</span> <span>$47.99M</span>
+</span><span class="dex-mover-tag">
+  <strong>Raydium AMM</strong> <span style="color:var(--green)">&#9650; +51.4%</span> <span>$160.59M</span>
+</span></div>
+</div>
+  <details class="collapse">
+    <summary>Individual DEX breakdown</summary>
+    <div class="grid grid-2">
+      <div>
+        <h4>Top Spot DEXes (100.0% of total) <a href="https://defillama.com/dexs/chain/Solana" target="_blank" rel="noopener" class="source-link">DeFiLlama &#8599;</a></h4>
+        <table><tr><th>Protocol</th><th>Volume 24h</th><th>Chg 1d</th><th>Chg 7d</th></tr><tr><td>Orca DEX</td><td>$250.95M</td><td><span style="color:var(--green)">&#9650; +111.0%</span></td><td><span style="color:var(--green)">&#9650; +35.3%</span></td></tr><tr><td>BisonFi</td><td>$163.16M</td><td><span style="color:var(--green)">&#9650; +4.2%</span></td><td><span style="color:var(--red)">&#9660; -31.1%</span></td></tr><tr><td>pump.fun</td><td>$160.84M</td><td><span style="color:var(--green)">&#9650; +2.6%</span></td><td><span style="color:var(--red)">&#9660; -12.7%</span></td></tr><tr><td>Raydium AMM</td><td>$160.59M</td><td><span style="color:var(--green)">&#9650; +51.4%</span></td><td><span style="color:var(--green)">&#9650; +7.4%</span></td></tr><tr><td>PumpSwap</td><td>$135.49M</td><td><span style="color:var(--red)">&#9660; -42.4%</span></td><td><span style="color:var(--red)">&#9660; -65.9%</span></td></tr><tr><td>Manifest Trade</td><td>$111.68M</td><td><span style="color:var(--green)">&#9650; +63.9%</span></td><td><span style="color:var(--green)">&#9650; +58.3%</span></td></tr><tr><td>Meteora DLMM</td><td>$82.88M</td><td><span style="color:var(--green)">&#9650; +5.0%</span></td><td><span style="color:var(--red)">&#9660; -33.3%</span></td></tr><tr><td>Tessera V</td><td>$72.81M</td><td><span style="color:var(--red)">&#9660; -6.3%</span></td><td><span style="color:var(--red)">&#9660; -18.3%</span></td></tr><tr><td>fomo Wallet</td><td>$66.07M</td><td><span style="color:var(--red)">&#9660; -6.5%</span></td><td><span style="color:var(--red)">&#9660; -56.9%</span></td></tr><tr><td>GoonFi</td><td>$61.86M</td><td><span style="color:var(--green)">&#9650; +19.9%</span></td><td><span style="color:var(--green)">&#9650; +29.2%</span></td></tr><tr><td>Axiom</td><td>$53.43M</td><td><span style="color:var(--red)">&#9660; -0.1%</span></td><td><span style="color:var(--red)">&#9660; -56.9%</span></td></tr><tr><td>Deriverse</td><td>$47.99M</td><td><span style="color:var(--green)">&#9650; +63.8%</span></td><td><span style="color:var(--green)">&#9650; +81.5%</span></td></tr><tr><td>Scorch</td><td>$40.39M</td><td><span style="color:var(--green)">&#9650; +13.6%</span></td><td><span style="color:var(--green)">&#9650; +1.3%</span></td></tr><tr><td>Jupiterz</td><td>$26.72M</td><td><span style="color:var(--red)">&#9660; -6.0%</span></td><td><span style="color:var(--green)">&#9650; +18.2%</span></td></tr><tr><td>Aquifer</td><td>$24.80M</td><td><span style="color:var(--green)">&#9650; +11.8%</span></td><td><span style="color:var(--muted)">&#8211; +0.0%</span></td></tr></table>
+      </div>
+      <div>
+        <h4>Top Perp DEXes (by TVL)</h4>
+        <table><tr><th>Protocol</th><th>TVL</th><th>Chg 1d</th><th>Chg 7d</th></tr><tr><td>Jupiter Perpetual Exchange</td><td>$754.40M</td><td><span style="color:var(--red)">&#9660; -3.4%</span></td><td></td></tr><tr><td>GMX Solana</td><td>$27.32M</td><td><span style="color:var(--red)">&#9660; -1.8%</span></td><td></td></tr><tr><td>Pacifica Perps</td><td>$27.20M</td><td><span style="color:var(--muted)">&#8211; -0.0%</span></td><td></td></tr><tr><td>Phoenix Perp</td><td>$23.54M</td><td><span style="color:var(--red)">&#9660; -0.4%</span></td><td></td></tr><tr><td>BULK</td><td>$7.88M</td><td><span style="color:var(--green)">&#9650; +1.0%</span></td><td></td></tr><tr><td>Bumpin Trade</td><td>$4.40M</td><td><span style="color:var(--red)">&#9660; -1.7%</span></td><td></td></tr><tr><td>Parcl V3</td><td>$763.04K</td><td><span style="color:var(--muted)">&#8211; -0.0%</span></td><td></td></tr><tr><td>TurboFlow Perps</td><td>$727.20K</td><td><span style="color:var(--green)">&#9650; +0.1%</span></td><td></td></tr><tr><td>Lavarage</td><td>$666.70K</td><td><span style="color:var(--red)">&#9660; -4.4%</span></td><td></td></tr><tr><td>Drift Trade</td><td>$642.52K</td><td><span style="color:var(--muted)">&#8211; +0.0%</span></td><td></td></tr></table>
+      </div>
+    </div>
+  </details>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="hyperliquid">
+  <div class="section-title" onclick="toggleSection('hyperliquid')">Hyperliquid Perps<span class="section-toggle" id="toggle-hyperliquid">&#9662;</span></div>
+  <div class="section-body" id="body-hyperliquid">
+    <div class="section-sources">Source: <a href="https://app.hyperliquid.xyz/trade" target="_blank">Hyperliquid</a><span class="freshness" style="color:var(--green)" title="Data fetched: 2026-10-19 17:37 UTC">3m ago</span></div>
+    <div class="panel-section">
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">24h Volume</div><div class="stat-value">$5.63B</div></div>
+    <div class="stat"><div class="stat-label">Total OI (notional)</div><div class="stat-value">$10.91B</div></div>
+    <div class="stat"><div class="stat-label">Active Markets</div><div class="stat-value">178</div></div>
+  </div>
+  <div class="why-line">Why it matters: Hyperliquid is where leveraged attention shows up early. Rising volume plus funding skew can flag narrative trades before they reach spot markets.</div>
+  <div class="grid grid-2" style="margin-top:16px">
+    <div>
+      <h4>Top 10 by 24h Volume <a href="https://app.hyperliquid.xyz/trade" target="_blank" rel="noopener" class="source-link">Hyperliquid &#8599;</a></h4>
+      <table><tr><th>#</th><th>Coin</th><th>Price</th><th>24h</th><th>Vol 24h</th><th>OI</th><th>Funding/hr</th></tr><tr><td>1</td><td><strong>BTC</strong></td><td>$81,894.50</td><td><span style="color:var(--green)">&#9650; +0.9%</span></td><td>$2.56B</td><td>$3.23B</td><td style="color:var(--red)">+0.0013%</td></tr><tr><td>2</td><td><strong>ETH</strong></td><td>$2,397.90</td><td><span style="color:var(--green)">&#9650; +1.2%</span></td><td>$1.14B</td><td>$2.58B</td><td style="color:var(--red)">+0.0011%</td></tr><tr><td>3</td><td><strong>HYPE</strong></td><td>$77.98</td><td><span style="color:var(--green)">&#9650; +0.7%</span></td><td>$346.29M</td><td>$1.58B</td><td style="color:var(--red)">+0.0004%</td></tr><tr><td>4</td><td><strong>ZEC</strong></td><td>$1,129.80</td><td><span style="color:var(--green)">&#9650; +3.6%</span></td><td>$343.22M</td><td>$504.37M</td><td style="color:var(--red)">+0.0013%</td></tr><tr><td>5</td><td><strong>SOL</strong></td><td>$104.04</td><td><span style="color:var(--green)">&#9650; +1.9%</span></td><td>$230.03M</td><td>$571.27M</td><td style="color:var(--red)">+0.0002%</td></tr><tr><td>6</td><td><strong>NEAR</strong></td><td>$4.95</td><td><span style="color:var(--green)">&#9650; +4.0%</span></td><td>$200.28M</td><td>$292.38M</td><td style="color:var(--red)">+0.0013%</td></tr><tr><td>7</td><td><strong>PUMP</strong></td><td>$0.0044</td><td><span style="color:var(--green)">&#9650; +6.7%</span></td><td>$148.01M</td><td>$141.49M</td><td style="color:var(--green)">-0.0004%</td></tr><tr><td>8</td><td><strong>XRP</strong></td><td>$1.30</td><td><span style="color:var(--green)">&#9650; +2.1%</span></td><td>$82.96M</td><td>$222.56M</td><td style="color:var(--red)">+0.0013%</td></tr><tr><td>9</td><td><strong>XMR</strong></td><td>$590.63</td><td><span style="color:var(--green)">&#9650; +0.5%</span></td><td>$57.79M</td><td>$70.31M</td><td style="color:var(--red)">+0.0006%</td></tr><tr><td>10</td><td><strong>WLD</strong></td><td>$0.5088</td><td><span style="color:var(--green)">&#9650; +7.3%</span></td><td>$52.82M</td><td>$74.37M</td><td style="color:var(--red)">+0.0013%</td></tr></table>
+    </div>
+    <div>
+      <h4>Volume Distribution</h4>
+      <svg width="100%" viewBox="0 0 460 264" xmlns="http://www.w3.org/2000/svg"><text x="96" y="17" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">BTC</text><rect x="100" y="2" width="290" height="22" fill="#06b6d4" rx="3" opacity="0.85"/><text x="394.0" y="17" fill="#a1a1aa" font-size="10" font-family="inherit">$2.56B</text><text x="96" y="43" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">ETH</text><rect x="100" y="28" width="130" height="22" fill="#06b6d4" rx="3" opacity="0.85"/><text x="233.78690180935263" y="43" fill="#a1a1aa" font-size="10" font-family="inherit">$1.14B</text><text x="96" y="69" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">HYPE</text><rect x="100" y="54" width="39" height="22" fill="#06b6d4" rx="3" opacity="0.85"/><text x="143.27741236022575" y="69" fill="#a1a1aa" font-size="10" font-family="inherit">$346.29M</text><text x="96" y="95" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">ZEC</text><rect x="100" y="80" width="39" height="22" fill="#06b6d4" rx="3" opacity="0.85"/><text x="142.92898915805964" y="95" fill="#a1a1aa" font-size="10" font-family="inherit">$343.22M</text><text x="96" y="121" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">SOL</text><rect x="100" y="106" width="26" height="22" fill="#06b6d4" rx="3" opacity="0.85"/><text x="130.09031245835678" y="121" fill="#a1a1aa" font-size="10" font-family="inherit">$230.03M</text><text x="96" y="147" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">NEAR</text><rect x="100" y="132" width="23" height="22" fill="#06b6d4" rx="3" opacity="0.85"/><text x="126.71586084050875" y="147" fill="#a1a1aa" font-size="10" font-family="inherit">$200.28M</text><text x="96" y="173" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">PUMP</text><rect x="100" y="158" width="17" height="22" fill="#06b6d4" rx="3" opacity="0.85"/><text x="120.7872309689215" y="173" fill="#a1a1aa" font-size="10" font-family="inherit">$148.01M</text><text x="96" y="199" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">XRP</text><rect x="100" y="184" width="9" height="22" fill="#06b6d4" rx="3" opacity="0.85"/><text x="113.40956327064703" y="199" fill="#a1a1aa" font-size="10" font-family="inherit">$82.96M</text><text x="96" y="225" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">XMR</text><rect x="100" y="210" width="7" height="22" fill="#06b6d4" rx="3" opacity="0.85"/><text x="110.55502470762147" y="225" fill="#a1a1aa" font-size="10" font-family="inherit">$57.79M</text><text x="96" y="251" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">WLD</text><rect x="100" y="236" width="6" height="22" fill="#06b6d4" rx="3" opacity="0.85"/><text x="109.99127264247859" y="251" fill="#a1a1aa" font-size="10" font-family="inherit">$52.82M</text></svg>
+    </div>
+  </div>
+  <div class="panel-section" style="margin-top:16px;padding:12px;border-left:3px solid #27272a;background:#0f0f14"><div style="font-size:0.8rem;color:#71717a">No new listings since last run.</div></div>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="new-markets">
+  <div class="section-title" onclick="toggleSection('new-markets')">Tokenized Stocks & New Markets<span class="section-toggle" id="toggle-new-markets">&#9662;</span></div>
+  <div class="section-body" id="body-new-markets">
+    <div class="section-sources">Sources: <a href="https://app.hyperliquid.xyz/trade" target="_blank">Hyperliquid</a> &middot; <a href="https://xstocks.fi" target="_blank">xStocks</a> &middot; <a href="https://prestocks.com" target="_blank">PreStocks</a><span class="freshness" style="color:var(--green)" title="Data fetched: 2026-10-19 17:37 UTC">3m ago</span></div>
+    <div class="panel-section"><div class="breakout-radar">
+  <div class="radar-head">
+    <div>
+      <h4>Breakout Radar</h4>
+      <div class="muted">Why it matters: this filters the stock/RWA universe down to names with a catalyst, move, or flow signal instead of showing every ticker equally.</div>
+    </div>
+  </div>
+  <div class="breakout-grid"><a class="breakout-card" href="https://dexscreener.com/solana/fjuby7jjf9dxj9d3r7chpvcnofw2iqxf7f7p3vqx4jza" target="_blank" rel="noopener">
+  <div class="breakout-top">
+    <strong>SPCX</strong>
+    <span>PreStocks</span>
+  </div>
+  <div class="breakout-price">$148.33 <span style="color:var(--green)">&#9650; +3.7%</span></div>
+  <div class="breakout-meta">
+    <span>$8.32M vol</span>
+    <span>volume</span>
+  </div>
+</a><a class="breakout-card" href="https://dexscreener.com/solana/4hty7atjpm5ptsews2ywrdpx6gjwm6sc2dv5mv9u8jsh" target="_blank" rel="noopener">
+  <div class="breakout-top">
+    <strong>OPENAI</strong>
+    <span>PreStocks</span>
+  </div>
+  <div class="breakout-price">$2,182.79 <span style="color:var(--green)">&#9650; +10.5%</span></div>
+  <div class="breakout-meta">
+    <span>$61.43K vol</span>
+    <span>large move</span>
+  </div>
+</a><a class="breakout-card" href="https://dexscreener.com/solana/frxxhbgidg2v4bvzqtxggiijmg1bquw4cvxplsxn58wf" target="_blank" rel="noopener">
+  <div class="breakout-top">
+    <strong>NEURALINK</strong>
+    <span>PreStocks</span>
+  </div>
+  <div class="breakout-price">$381.23 <span style="color:var(--green)">&#9650; +2.9%</span></div>
+  <div class="breakout-meta">
+    <span>$132.07K vol</span>
+    <span>watch</span>
+  </div>
+</a><a class="breakout-card" href="https://dexscreener.com/solana/ezyszdex1lzdt7tssfv8xdpi49sdkc3mdfv2mvmeqltu" target="_blank" rel="noopener">
+  <div class="breakout-top">
+    <strong>ANTHROPIC</strong>
+    <span>PreStocks</span>
+  </div>
+  <div class="breakout-price">$964.86 <span style="color:var(--red)">&#9660; -1.5%</span></div>
+  <div class="breakout-meta">
+    <span>$59.22K vol</span>
+    <span>watch</span>
+  </div>
+</a><a class="breakout-card" href="https://dexscreener.com/solana/aab2xatnjvdspbmfya82tvwlrjrjbmdgqnjymbpouu78" target="_blank" rel="noopener">
+  <div class="breakout-top">
+    <strong>ANDURIL</strong>
+    <span>PreStocks</span>
+  </div>
+  <div class="breakout-price">$144.80 <span style="color:var(--red)">&#9660; -0.6%</span></div>
+  <div class="breakout-meta">
+    <span>$23.30K vol</span>
+    <span>watch</span>
+  </div>
+</a></div>
+</div><div style="margin-bottom:20px">
+  <h4>Top Movers — Hyperliquid Perps <a href="https://app.hyperliquid.xyz/trade" target="_blank" rel="noopener" class="source-link">Hyperliquid &#8599;</a></h4>
+  <div class="grid grid-2">
+    <div>
+      <div style="color:var(--green);font-weight:600;font-size:0.85rem;margin-bottom:6px">Gainers</div>
+      <table><tr><th>Coin</th><th>Price</th><th>24h</th><th>Vol 24h</th></tr><tr><td><strong>NIL</strong></td><td>$0.0895</td><td><span style="color:var(--green)">&#9650; +17.5%</span></td><td>$3.88M</td></tr><tr><td><strong>VVV</strong></td><td>$23.87</td><td><span style="color:var(--green)">&#9650; +9.8%</span></td><td>$20.98M</td></tr><tr><td><strong>CRV</strong></td><td>$0.3693</td><td><span style="color:var(--green)">&#9650; +9.8%</span></td><td>$13.77M</td></tr><tr><td><strong>PURR</strong></td><td>$0.0979</td><td><span style="color:var(--green)">&#9650; +9.1%</span></td><td>$1.51M</td></tr><tr><td><strong>MORPHO</strong></td><td>$2.52</td><td><span style="color:var(--green)">&#9650; +8.8%</span></td><td>$2.91M</td></tr></table>
+    </div>
+    <div>
+      <div style="color:var(--red);font-weight:600;font-size:0.85rem;margin-bottom:6px">Losers</div>
+      <table><tr><th>Coin</th><th>Price</th><th>24h</th><th>Vol 24h</th></tr><tr><td><strong>NXPC</strong></td><td>$0.1546</td><td><span style="color:var(--red)">&#9660; -9.3%</span></td><td>$354.44K</td></tr><tr><td><strong>WLFI</strong></td><td>$0.0539</td><td><span style="color:var(--red)">&#9660; -5.5%</span></td><td>$1.53M</td></tr><tr><td><strong>STRK</strong></td><td>$0.0570</td><td><span style="color:var(--red)">&#9660; -4.7%</span></td><td>$14.84M</td></tr><tr><td><strong>HBAR</strong></td><td>$0.0822</td><td><span style="color:var(--red)">&#9660; -3.3%</span></td><td>$2.05M</td></tr><tr><td><strong>MEGA</strong></td><td>$0.0421</td><td><span style="color:var(--red)">&#9660; -3.0%</span></td><td>$784.78K</td></tr></table>
+    </div>
+  </div>
+</div><details class="collapse" style="margin-bottom:20px">
+  <summary>PreStocks on Solana (5 tracked)</summary>
+  <div>
+  <h4>PreStocks — Pre-IPO Tokens on Solana <a href="https://prestocks.com" target="_blank" rel="noopener" class="source-link">PreStocks &#8599;</a></h4>
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">
+    Tokenized pre-IPO equity exposure — trade private company valuations 24/7 on Solana.
+  </div>
+  <table><tr><th>Symbol</th><th>Company</th><th>Price</th><th>24h</th><th>Volume 24h</th><th>Mkt Cap</th></tr><tr><td><strong>SPCX</strong></td><td style="color:var(--muted);font-size:0.8rem">SpaceX - Backpack Securities</td><td>$148.33</td><td><span style="color:var(--green)">&#9650; +3.7%</span></td><td>$8.32M</td><td>$9.51M</td></tr><tr><td><strong>NEURALINK</strong></td><td style="color:var(--muted);font-size:0.8rem">Neuralink PreStocks</td><td>$381.23</td><td><span style="color:var(--green)">&#9650; +2.9%</span></td><td>$132.07K</td><td>$508.57K</td></tr><tr><td><strong>OPENAI</strong></td><td style="color:var(--muted);font-size:0.8rem">OpenAI PreStocks</td><td>$2,182.79</td><td><span style="color:var(--green)">&#9650; +10.5%</span></td><td>$61.43K</td><td>$2.50M</td></tr><tr><td><strong>ANTHROPIC</strong></td><td style="color:var(--muted);font-size:0.8rem">Anthropic PreStocks</td><td>$964.86</td><td><span style="color:var(--red)">&#9660; -1.5%</span></td><td>$59.22K</td><td>$7.44M</td></tr><tr><td><strong>ANDURIL</strong></td><td style="color:var(--muted);font-size:0.8rem">Anduril PreStocks</td><td>$144.80</td><td><span style="color:var(--red)">&#9660; -0.6%</span></td><td>$23.30K</td><td>$1.66M</td></tr></table>
+  </div>
+</details></div>
+  </div>
+</div>
+<div class="dash-section" id="crossovers">
+  <div class="section-title" onclick="toggleSection('crossovers')">Multi-Signal Crossovers<span class="section-toggle" id="toggle-crossovers">&#9662;</span></div>
+  <div class="section-body" id="body-crossovers">
+    <div class="section-sources">Sources: <a href="https://www.coingecko.com/en/trending" target="_blank">CoinGecko Trending</a> &middot; <a href="https://app.hyperliquid.xyz/trade" target="_blank">Hyperliquid</a><span class="freshness" style="color:var(--green)" title="Data fetched: 2026-10-19 17:36 UTC">4m ago</span></div>
+    <div class="panel-section">
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px">
+    Coins trending on CoinGecko <strong style="color:var(--accent)">AND</strong> ranking in Hyperliquid's top 20 by perp volume —
+    the setups where retail attention and leveraged positioning are both present.
+  </div>
+  <table>
+    <tr>
+      <th>Coin</th>
+      <th>Mcap Rank</th>
+      <th>HL Rank</th>
+      <th>24h</th>
+      <th>HL Vol 24h</th>
+      <th>Funding/hr</th>
+    </tr>
+    <tr><td><strong>BTC</strong></td><td style="color:var(--muted)">#1</td><td style="color:#06b6d4">#1</td><td><span style="color:var(--green)">&#9650; +1.0%</span></td><td>$2.56B</td><td style="color:var(--red)">+0.0013%</td></tr><tr><td><strong>HYPE</strong></td><td style="color:var(--muted)">#11</td><td style="color:#06b6d4">#3</td><td><span style="color:var(--green)">&#9650; +0.9%</span></td><td>$346.29M</td><td style="color:var(--red)">+0.0004%</td></tr><tr><td><strong>SOL</strong></td><td style="color:var(--muted)">#7</td><td style="color:#06b6d4">#5</td><td><span style="color:var(--green)">&#9650; +2.0%</span></td><td>$230.03M</td><td style="color:var(--red)">+0.0002%</td></tr><tr><td><strong>NEAR</strong></td><td style="color:var(--muted)">#19</td><td style="color:#06b6d4">#6</td><td><span style="color:var(--green)">&#9650; +4.0%</span></td><td>$200.28M</td><td style="color:var(--red)">+0.0013%</td></tr><tr><td><strong>PUMP</strong></td><td style="color:var(--muted)">#49</td><td style="color:#06b6d4">#7</td><td><span style="color:var(--green)">&#9650; +6.7%</span></td><td>$148.01M</td><td style="color:var(--green)">-0.0004%</td></tr>
+  </table>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="treasuries">
+  <div class="section-title" onclick="toggleSection('treasuries')">BTC Treasury Bid<span class="section-toggle" id="toggle-treasuries">&#9662;</span></div>
+  <div class="section-body" id="body-treasuries">
+    <div class="section-sources">Source: <a href="https://www.coingecko.com/en/public-companies-bitcoin" target="_blank">CoinGecko Treasuries</a><span class="freshness" style="color:var(--green)" title="Data fetched: 2026-10-19 17:38 UTC">2m ago</span></div>
+    <div class="panel-section">
+  <div class="why-line">Why it matters: Strategy/Saylor buying is one of the cleanest public signals for the corporate BTC treasury bid. If stock/equity froth cools, treasury demand can help show whether capital is rotating back toward BTC and crypto beta.</div>
+  <div class="stats-row">
+  <div class="stat"><div class="stat-label">Strategy BTC</div><div class="stat-value">848,517</div><div class="muted">MSTR.US</div></div>
+  <div class="stat"><div class="stat-label">Current Value</div><div class="stat-value">$69.48B</div></div>
+  <div class="stat"><div class="stat-label">Tracked Treasury Share</div><div class="stat-value">65.09%</div></div>
+  <div class="stat"><div class="stat-label">% BTC Supply</div><div class="stat-value">4.041</div></div>
+</div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Tracked Entities</div><div class="stat-value">180</div></div>
+    <div class="stat"><div class="stat-label">Total Treasury BTC</div><div class="stat-value">1,303,553</div></div>
+    <div class="stat"><div class="stat-label">Total Value</div><div class="stat-value">$106.74B</div></div>
+    <div class="stat"><div class="stat-label">Treasury Dominance</div><div class="stat-value">6.21</div></div>
+  </div>
+  <details class="collapse">
+    <summary>Top BTC treasury holders</summary>
+    <table><tr><th>Entity</th><th>BTC</th><th>Value</th><th>% Supply</th></tr><tr><td><strong>Strategy</strong> <span class="muted">MSTR.US</span></td><td>848,517 BTC</td><td>$69.48B</td><td>4.041</td></tr><tr><td><strong>Metaplanet</strong> <span class="muted">3350.T</span></td><td>44,000 BTC</td><td>$3.60B</td><td>0.21</td></tr><tr><td><strong>Twenty One Capital</strong> <span class="muted">XXI.US</span></td><td>43,514 BTC</td><td>$3.56B</td><td>0.207</td></tr><tr><td><strong>MARA Holdings</strong> <span class="muted">MARA.US</span></td><td>35,577 BTC</td><td>$2.91B</td><td>0.169</td></tr><tr><td><strong>Strive</strong> <span class="muted">ASST.US</span></td><td>33,996 BTC</td><td>$2.78B</td><td>0.162</td></tr><tr><td><strong>Bitcoin Standard Treasury Company</strong> <span class="muted">CEPO.US</span></td><td>30,021 BTC</td><td>$2.46B</td><td>0.143</td></tr><tr><td><strong>Bullish</strong> <span class="muted">BLSH.US</span></td><td>23,800 BTC</td><td>$1.95B</td><td>0.113</td></tr><tr><td><strong>Galaxy Digital Holdings Ltd</strong> <span class="muted">GLXY.US</span></td><td>21,084 BTC</td><td>$1.73B</td><td>0.1</td></tr></table>
+  </details>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="protocols">
+  <div class="section-title" onclick="toggleSection('protocols')">Top Protocols<span class="section-toggle" id="toggle-protocols">&#9662;</span></div>
+  <div class="section-body" id="body-protocols">
+    <div class="section-sources">Source: <a href="https://defillama.com/chain/Solana" target="_blank">DeFiLlama</a><span class="freshness" style="color:var(--red)" title="Data fetched: 2026-10-12 20:22 UTC">6d ago</span></div>
+    <div class="panel-section">
+  <h4>Top 20 by TVL</h4>
+  <table class="full-table">
+    <tr><th>#</th><th>Protocol</th><th>Category</th><th>TVL</th><th>24h</th><th>7d</th></tr>
+    <tr>
+  <td>1</td><td>Sanctum Validator LSTs</td><td>Liquid Staking</td>
+  <td>$1.77B</td><td><span style="color:var(--red)">&#9660; -4.1%</span></td><td><span style="color:var(--red)">&#9660; -9.9%</span></td>
+</tr><tr>
+  <td>2</td><td>Kamino Lend</td><td>Lending</td>
+  <td>$1.31B</td><td><span style="color:var(--red)">&#9660; -2.5%</span></td><td><span style="color:var(--red)">&#9660; -6.8%</span></td>
+</tr><tr>
+  <td>3</td><td>Raydium AMM</td><td>Dexs</td>
+  <td>$1.24B</td><td><span style="color:var(--green)">&#9650; +0.3%</span></td><td><span style="color:var(--red)">&#9660; -7.7%</span></td>
+</tr><tr>
+  <td>4</td><td>Jito Liquid Staking</td><td>Liquid Staking</td>
+  <td>$1.12B</td><td><span style="color:var(--red)">&#9660; -4.1%</span></td><td><span style="color:var(--red)">&#9660; -10.2%</span></td>
+</tr><tr>
+  <td>5</td><td>Jupiter Lend</td><td>Lending</td>
+  <td>$1.12B</td><td><span style="color:var(--red)">&#9660; -2.2%</span></td><td><span style="color:var(--red)">&#9660; -19.5%</span></td>
+</tr><tr>
+  <td>6</td><td>Binance Staked SOL</td><td>Liquid Staking</td>
+  <td>$1.10B</td><td><span style="color:var(--red)">&#9660; -4.3%</span></td><td><span style="color:var(--red)">&#9660; -10.4%</span></td>
+</tr><tr>
+  <td>7</td><td>Jupiter Perpetual Exchange</td><td>Derivatives</td>
+  <td>$754.40M</td><td><span style="color:var(--red)">&#9660; -3.4%</span></td><td><span style="color:var(--red)">&#9660; -7.4%</span></td>
+</tr><tr>
+  <td>8</td><td>Jupiter Staked SOL</td><td>Liquid Staking</td>
+  <td>$555.82M</td><td><span style="color:var(--red)">&#9660; -4.1%</span></td><td><span style="color:var(--red)">&#9660; -10.1%</span></td>
+</tr><tr>
+  <td>9</td><td>Sentora Curator</td><td>Risk Curators</td>
+  <td>$471.88M</td><td><span style="color:var(--red)">&#9660; -0.5%</span></td><td><span style="color:var(--red)">&#9660; -1.4%</span></td>
+</tr><tr>
+  <td>10</td><td>Marinade Native</td><td>Staking Pool</td>
+  <td>$395.52M</td><td><span style="color:var(--red)">&#9660; -4.2%</span></td><td><span style="color:var(--red)">&#9660; -11.4%</span></td>
+</tr><tr>
+  <td>11</td><td>PumpSwap</td><td>Dexs</td>
+  <td>$360.37M</td><td><span style="color:var(--red)">&#9660; -3.7%</span></td><td><span style="color:var(--red)">&#9660; -9.9%</span></td>
+</tr><tr>
+  <td>12</td><td>Orca DEX</td><td>Dexs</td>
+  <td>$308.55M</td><td><span style="color:var(--red)">&#9660; -0.4%</span></td><td><span style="color:var(--red)">&#9660; -4.1%</span></td>
+</tr><tr>
+  <td>13</td><td>Drift Staked SOL</td><td>Liquid Staking</td>
+  <td>$299.00M</td><td><span style="color:var(--red)">&#9660; -4.2%</span></td><td><span style="color:var(--red)">&#9660; -11.7%</span></td>
+</tr><tr>
+  <td>14</td><td>OnRe</td><td>RWA</td>
+  <td>$292.51M</td><td><span style="color:var(--green)">&#9650; +0.1%</span></td><td><span style="color:var(--red)">&#9660; -0.1%</span></td>
+</tr><tr>
+  <td>15</td><td>Huma</td><td>RWA</td>
+  <td>$254.58M</td><td><span style="color:var(--green)">&#9650; +2.3%</span></td><td><span style="color:var(--red)">&#9660; -1.1%</span></td>
+</tr><tr>
+  <td>16</td><td>CCIP</td><td>Bridge</td>
+  <td>$246.95M</td><td><span style="color:var(--red)">&#9660; -0.6%</span></td><td><span style="color:var(--green)">&#9650; +3.2%</span></td>
+</tr><tr>
+  <td>17</td><td>Marinade Liquid Staking</td><td>Liquid Staking</td>
+  <td>$244.94M</td><td><span style="color:var(--red)">&#9660; -4.1%</span></td><td><span style="color:var(--red)">&#9660; -10.9%</span></td>
+</tr><tr>
+  <td>18</td><td>Forward Industries SOL</td><td>Liquid Staking</td>
+  <td>$233.45M</td><td><span style="color:var(--red)">&#9660; -3.6%</span></td><td><span style="color:var(--red)">&#9660; -10.4%</span></td>
+</tr><tr>
+  <td>19</td><td>Solstice</td><td>Basis Trading</td>
+  <td>$209.23M</td><td><span style="color:var(--red)">&#9660; -0.6%</span></td><td><span style="color:var(--red)">&#9660; -1.2%</span></td>
+</tr><tr>
+  <td>20</td><td>Sanctum Infinity</td><td>Dexs</td>
+  <td>$201.25M</td><td><span style="color:var(--red)">&#9660; -4.9%</span></td><td><span style="color:var(--red)">&#9660; -13.6%</span></td>
+</tr>
+  </table>
+  <h4 style="margin-top:16px">Protocol TVL</h4>
+  <svg width="100%" viewBox="0 0 460 264" xmlns="http://www.w3.org/2000/svg"><text x="96" y="17" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">Sanctum Validato</text><rect x="100" y="2" width="290" height="22" fill="#7c3aed" rx="3" opacity="0.85"/><text x="394.0" y="17" fill="#a1a1aa" font-size="10" font-family="inherit">$1.77B</text><text x="96" y="43" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">Kamino Lend</text><rect x="100" y="28" width="214" height="22" fill="#7c3aed" rx="3" opacity="0.85"/><text x="317.6671387972345" y="43" fill="#a1a1aa" font-size="10" font-family="inherit">$1.31B</text><text x="96" y="69" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">Raydium AMM</text><rect x="100" y="54" width="203" height="22" fill="#7c3aed" rx="3" opacity="0.85"/><text x="307.129728822232" y="69" fill="#a1a1aa" font-size="10" font-family="inherit">$1.24B</text><text x="96" y="95" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">Jito Liquid Stak</text><rect x="100" y="80" width="184" height="22" fill="#7c3aed" rx="3" opacity="0.85"/><text x="287.8507184579149" y="95" fill="#a1a1aa" font-size="10" font-family="inherit">$1.12B</text><text x="96" y="121" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">Jupiter Lend</text><rect x="100" y="106" width="183" height="22" fill="#7c3aed" rx="3" opacity="0.85"/><text x="287.2562158291754" y="121" fill="#a1a1aa" font-size="10" font-family="inherit">$1.12B</text><text x="96" y="147" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">Binance Staked S</text><rect x="100" y="132" width="180" height="22" fill="#7c3aed" rx="3" opacity="0.85"/><text x="284.3895154828069" y="147" fill="#a1a1aa" font-size="10" font-family="inherit">$1.10B</text><text x="96" y="173" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">Jupiter Perpetua</text><rect x="100" y="158" width="123" height="22" fill="#7c3aed" rx="3" opacity="0.85"/><text x="227.34216109093313" y="173" fill="#a1a1aa" font-size="10" font-family="inherit">$754.40M</text><text x="96" y="199" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">Jupiter Staked S</text><rect x="100" y="184" width="91" height="22" fill="#7c3aed" rx="3" opacity="0.85"/><text x="194.8752681650525" y="199" fill="#a1a1aa" font-size="10" font-family="inherit">$555.82M</text><text x="96" y="225" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">Sentora Curator</text><rect x="100" y="210" width="77" height="22" fill="#7c3aed" rx="3" opacity="0.85"/><text x="181.15120909766057" y="225" fill="#a1a1aa" font-size="10" font-family="inherit">$471.88M</text><text x="96" y="251" text-anchor="end" fill="#a1a1aa" font-size="11" font-family="inherit">Marinade Native</text><rect x="100" y="236" width="65" height="22" fill="#7c3aed" rx="3" opacity="0.85"/><text x="168.6657846037813" y="251" fill="#a1a1aa" font-size="10" font-family="inherit">$395.52M</text></svg>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="yields">
+  <div class="section-title" onclick="toggleSection('yields')">DeFi Yields<span class="section-toggle" id="toggle-yields">&#9662;</span></div>
+  <div class="section-body" id="body-yields">
+    <div class="section-sources">Source: <a href="https://defillama.com/yields?chain=Solana" target="_blank">DeFiLlama Yields</a><span class="freshness" style="color:var(--red)" title="Data fetched: 2026-10-12 20:22 UTC">6d ago</span></div>
+    <div class="panel-section">
+  <div class="stats-row">
+  <div class="stat"><div class="stat-label">Total Solana DeFi TVL</div><div class="stat-value">$10.69B</div></div>
+  <div class="stat"><div class="stat-label">Avg APY</div><div class="stat-value">10.3%</div></div>
+  <div class="stat"><div class="stat-label">Best Stable APY</div><div class="stat-value" style="color:var(--green)">45.0%</div></div>
+  <div class="stat"><div class="stat-label">Pools Tracked</div><div class="stat-value">342</div></div>
+</div>
+  <details class="collapse">
+    <summary>Pool details</summary>
+    <div class="grid grid-2">
+      <div>
+        <h4>Top Pools by TVL <a href="https://defillama.com/yields?chain=Solana" target="_blank" rel="noopener" class="source-link">DeFiLlama &#8599;</a></h4>
+        <table><tr><th>Protocol</th><th>Pool</th><th>APY</th><th>Base</th><th>Reward</th><th>TVL</th></tr><tr>
+  <td>jito-liquid-staking</td>
+  <td>JITOSOL </td>
+  <td style="color:var(--text);font-weight:600">4.8%</td>
+  <td class="muted">4.8%</td>
+  <td class="muted">0.0%</td>
+  <td>$1.13B</td>
+</tr><tr>
+  <td>binance-staked-sol</td>
+  <td>BNSOL </td>
+  <td style="color:var(--text);font-weight:600">4.5%</td>
+  <td class="muted">4.5%</td>
+  <td class="muted">0.0%</td>
+  <td>$1.11B</td>
+</tr><tr>
+  <td>blackrock-buidl</td>
+  <td>BUIDL &#9679;</td>
+  <td style="color:var(--text);font-weight:600">3.8%</td>
+  <td class="muted">3.8%</td>
+  <td class="muted">0.0%</td>
+  <td>$931.06M</td>
+</tr><tr>
+  <td>jupiter-staked-sol</td>
+  <td>JUPSOL </td>
+  <td style="color:var(--green);font-weight:600">5.5%</td>
+  <td class="muted">5.5%</td>
+  <td class="muted">0.0%</td>
+  <td>$559.43M</td>
+</tr><tr>
+  <td>jupiter-lend</td>
+  <td>USDC &#9679;</td>
+  <td style="color:var(--green);font-weight:600">5.7%</td>
+  <td class="muted">5.4%</td>
+  <td class="muted">0.4%</td>
+  <td>$496.91M</td>
+</tr><tr>
+  <td>drift-staked-sol</td>
+  <td>DSOL </td>
+  <td style="color:var(--green);font-weight:600">5.0%</td>
+  <td class="muted">5.0%</td>
+  <td class="muted">0.0%</td>
+  <td>$300.99M</td>
+</tr><tr>
+  <td>onre</td>
+  <td>ONYC </td>
+  <td style="color:var(--green);font-weight:600">11.0%</td>
+  <td class="muted">11.0%</td>
+  <td class="muted">0.0%</td>
+  <td>$286.40M</td>
+</tr><tr>
+  <td>jupiter-lend</td>
+  <td>PYUSD &#9679;</td>
+  <td style="color:var(--text);font-weight:600">3.7%</td>
+  <td class="muted">3.7%</td>
+  <td class="muted">0.0%</td>
+  <td>$250.87M</td>
+</tr><tr>
+  <td>marinade-liquid-staking</td>
+  <td>MSOL </td>
+  <td style="color:var(--text);font-weight:600">4.4%</td>
+  <td class="muted">4.4%</td>
+  <td class="muted">0.0%</td>
+  <td>$242.68M</td>
+</tr><tr>
+  <td>kamino-lend</td>
+  <td>DSOL </td>
+  <td style="color:var(--text);font-weight:600">0.0%</td>
+  <td class="muted">0.0%</td>
+  <td class="muted">0.0%</td>
+  <td>$217.49M</td>
+</tr><tr>
+  <td>sanctum-infinity</td>
+  <td>INF </td>
+  <td style="color:var(--green);font-weight:600">5.5%</td>
+  <td class="muted">5.5%</td>
+  <td class="muted">0.0%</td>
+  <td>$202.23M</td>
+</tr><tr>
+  <td>dfdv-staked-sol</td>
+  <td>DFDVSOL </td>
+  <td style="color:var(--green);font-weight:600">5.1%</td>
+  <td class="muted">5.1%</td>
+  <td class="muted">0.0%</td>
+  <td>$198.24M</td>
+</tr><tr>
+  <td>ondo-yield-assets</td>
+  <td>USDY &#9679;</td>
+  <td style="color:var(--text);font-weight:600">3.7%</td>
+  <td class="muted">3.7%</td>
+  <td class="muted">0.0%</td>
+  <td>$179.84M</td>
+</tr><tr>
+  <td>phantom-sol</td>
+  <td>PSOL </td>
+  <td style="color:var(--green);font-weight:600">5.7%</td>
+  <td class="muted">5.7%</td>
+  <td class="muted">0.0%</td>
+  <td>$173.01M</td>
+</tr><tr>
+  <td>kamino-lend</td>
+  <td>ONYC </td>
+  <td style="color:var(--text);font-weight:600">0.0%</td>
+  <td class="muted">0.0%</td>
+  <td class="muted">0.0%</td>
+  <td>$154.68M</td>
+</tr></table>
+      </div>
+      <div>
+        <h4>Top Stablecoin Yields</h4>
+        <table><tr><th>Protocol</th><th>Pool</th><th>APY</th><th>TVL</th></tr><tr>
+  <td>neutral-trade</td>
+  <td>USDC</td>
+  <td style="color:var(--green);font-weight:600">45.0%</td>
+  <td>$2.25M</td>
+</tr><tr>
+  <td>neutral-trade</td>
+  <td>USDC</td>
+  <td style="color:var(--green);font-weight:600">34.5%</td>
+  <td>$1.41M</td>
+</tr><tr>
+  <td>orca-dex</td>
+  <td>USDG-USDE</td>
+  <td style="color:var(--green);font-weight:600">16.9%</td>
+  <td>$1.60M</td>
+</tr><tr>
+  <td>orca-dex</td>
+  <td>PYUSD-USDE</td>
+  <td style="color:var(--green);font-weight:600">14.6%</td>
+  <td>$2.18M</td>
+</tr><tr>
+  <td>unitas-usdu</td>
+  <td>SUSDU</td>
+  <td style="color:var(--green);font-weight:600">10.7%</td>
+  <td>$4.21M</td>
+</tr><tr>
+  <td>gmx-solana</td>
+  <td>USDCHF-USDC</td>
+  <td style="color:var(--green);font-weight:600">9.9%</td>
+  <td>$1.86M</td>
+</tr><tr>
+  <td>neutral-trade</td>
+  <td>USDC</td>
+  <td style="color:var(--green);font-weight:600">9.7%</td>
+  <td>$4.22M</td>
+</tr><tr>
+  <td>kamino-lend</td>
+  <td>USDC</td>
+  <td style="color:var(--green);font-weight:600">9.6%</td>
+  <td>$1.85M</td>
+</tr></table>
+      </div>
+    </div>
+  </details>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="sectors">
+  <div class="section-title" onclick="toggleSection('sectors')">Sectors<span class="section-toggle" id="toggle-sectors">&#9662;</span></div>
+  <div class="section-body" id="body-sectors">
+    <div class="section-sources">Source: <a href="https://defillama.com/categories" target="_blank">DeFiLlama Categories</a><span class="freshness" style="color:var(--red)" title="Data fetched: 2026-10-12 20:22 UTC">6d ago</span></div>
+    <div class="panel-section">
+  <h4>Sector Rotation (Solana TVL by Category) <a href="https://defillama.com/categories" target="_blank" rel="noopener" class="source-link">DeFiLlama &#8599;</a></h4>
+  <details class="collapse">
+    <summary>Sector breakdown (12 sectors)</summary>
+    <div>
+      <table><tr><th>Sector</th><th>TVL</th><th>24h Chg</th><th>Protocols</th><th>Top Protocol</th></tr><tr>
+  <td style="font-weight:600">Liquid Staking</td>
+  <td>$6.94B</td>
+  <td style="color:var(--red)">-4.1%</td>
+  <td class="muted">38</td>
+  <td class="muted">Sanctum Validator LSTs</td>
+</tr><tr>
+  <td style="font-weight:600">Lending</td>
+  <td>$2.71B</td>
+  <td style="color:var(--red)">-2.4%</td>
+  <td class="muted">15</td>
+  <td class="muted">Kamino Lend</td>
+</tr><tr>
+  <td style="font-weight:600">Dexs</td>
+  <td>$2.53B</td>
+  <td style="color:var(--red)">-1.3%</td>
+  <td class="muted">37</td>
+  <td class="muted">Raydium AMM</td>
+</tr><tr>
+  <td style="font-weight:600">Derivatives</td>
+  <td>$848.73M</td>
+  <td style="color:var(--red)">-3.1%</td>
+  <td class="muted">15</td>
+  <td class="muted">Jupiter Perpetual Exchange</td>
+</tr><tr>
+  <td style="font-weight:600">Risk Curators</td>
+  <td>$669.53M</td>
+  <td style="color:var(--green)">+0.2%</td>
+  <td class="muted">5</td>
+  <td class="muted">Sentora Curator</td>
+</tr><tr>
+  <td style="font-weight:600">RWA</td>
+  <td>$595.29M</td>
+  <td style="color:var(--green)">+1.1%</td>
+  <td class="muted">12</td>
+  <td class="muted">OnRe</td>
+</tr><tr>
+  <td style="font-weight:600">Staking Pool</td>
+  <td>$573.25M</td>
+  <td style="color:var(--red)">-10.5%</td>
+  <td class="muted">5</td>
+  <td class="muted">Marinade Native</td>
+</tr><tr>
+  <td style="font-weight:600">Bridge</td>
+  <td>$467.71M</td>
+  <td style="color:var(--red)">-1.6%</td>
+  <td class="muted">10</td>
+  <td class="muted">CCIP</td>
+</tr><tr>
+  <td style="font-weight:600">Basis Trading</td>
+  <td>$286.17M</td>
+  <td style="color:var(--red)">-0.6%</td>
+  <td class="muted">5</td>
+  <td class="muted">Solstice</td>
+</tr><tr>
+  <td style="font-weight:600">Yield</td>
+  <td>$174.56M</td>
+  <td style="color:var(--red)">-1.9%</td>
+  <td class="muted">12</td>
+  <td class="muted">Sanctum Reserve</td>
+</tr><tr>
+  <td style="font-weight:600">Yield Aggregator</td>
+  <td>$89.07M</td>
+  <td style="color:var(--red)">-3.0%</td>
+  <td class="muted">7</td>
+  <td class="muted">Meteora vaults</td>
+</tr><tr>
+  <td style="font-weight:600">Liquidity Manager</td>
+  <td>$74.76M</td>
+  <td style="color:var(--red)">-1.1%</td>
+  <td class="muted">4</td>
+  <td class="muted">Kamino Liquidity</td>
+</tr></table>
+      
+    </div>
+  </details>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="upgrades">
+  <div class="section-title" onclick="toggleSection('upgrades')">Network Upgrades<span class="section-toggle" id="toggle-upgrades">&#9662;</span></div>
+  <div class="section-body" id="body-upgrades">
+    <div class="section-sources">Sources: <a href="https://github.com/solana-foundation/solana-improvement-documents/pulls" target="_blank">SIMDs (GitHub)</a> &middot; <a href="https://www.validators.app" target="_blank">Validators.app</a><span class="freshness" style="color:var(--green)" title="Data fetched: 2026-10-19 17:38 UTC">2m ago</span></div>
+    <div class="panel-section">
+  <div style="margin-bottom:24px">
+  <h4>Validator Client Adoption (Stake-Weighted)</h4>
+  <div class="stats-row" style="margin-bottom:16px">
+    <div class="stat"><div class="stat-label">Total Validators</div><div class="stat-value">679</div></div>
+    <div class="stat"><div class="stat-label">Total Stake</div><div class="stat-value">438M SOL</div></div>
+  </div>
+  <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;margin-bottom:16px;background:var(--surface2)"><div style="width:99.74%;background:#9333ea;height:100%" title="Agave: 99.74%"></div></div>
+  <div style="margin-bottom:10px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+    <span style="font-weight:600;font-size:0.88rem">Agave</span>
+    <span style="font-size:0.82rem"><strong>99.74%</strong> <span class="muted">&middot; 669 validators &middot; 437M SOL</span></span>
+  </div>
+  <div style="background:var(--surface2);border-radius:4px;height:8px;overflow:hidden">
+    <div style="background:#9333ea;height:100%;width:99.74%;border-radius:4px;transition:width 0.3s"></div>
+  </div>
+</div><div style="margin-bottom:10px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+    <span style="font-weight:600;font-size:0.88rem">Firedancer</span>
+    <span style="font-size:0.82rem"><strong>0.2%</strong> <span class="muted">&middot; 4 validators &middot; 895,066 SOL</span></span>
+  </div>
+  <div style="background:var(--surface2);border-radius:4px;height:8px;overflow:hidden">
+    <div style="background:#f97316;height:100%;width:2%;border-radius:4px;transition:width 0.3s"></div>
+  </div>
+</div><div style="margin-bottom:10px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+    <span style="font-weight:600;font-size:0.88rem">Unknown</span>
+    <span style="font-size:0.82rem"><strong>0.05%</strong> <span class="muted">&middot; 6 validators &middot; 234,734 SOL</span></span>
+  </div>
+  <div style="background:var(--surface2);border-radius:4px;height:8px;overflow:hidden">
+    <div style="background:#71717a;height:100%;width:2%;border-radius:4px;transition:width 0.3s"></div>
+  </div>
+</div>
+</div>
+  <details class="collapse"><summary>Client versions</summary><div><h4 style="margin-top:20px">Top Versions by Stake</h4>
+<table><tr><th>Version</th><th>Client</th><th>Stake %</th></tr><tr><td><code style="font-size:0.78rem">4.3.2</code></td><td>Agave</td><td>59.18%</td></tr><tr><td><code style="font-size:0.78rem">4.3.0</code></td><td>Agave</td><td>22.75%</td></tr><tr><td><code style="font-size:0.78rem">26.10.2</code></td><td>Agave</td><td>6.29%</td></tr><tr><td><code style="font-size:0.78rem">4.2.2</code></td><td>Agave</td><td>3.66%</td></tr><tr><td><code style="font-size:0.78rem">26.9.6</code></td><td>Agave</td><td>3.31%</td></tr><tr><td><code style="font-size:0.78rem">26.9.4</code></td><td>Agave</td><td>2.0%</td></tr><tr><td><code style="font-size:0.78rem">4.3.0-rc.0</code></td><td>Agave</td><td>1.21%</td></tr><tr><td><code style="font-size:0.78rem">26.10.0</code></td><td>Agave</td><td>0.44%</td></tr></table></div></details><details class="collapse"><summary>Upcoming upgrades &amp; roadmap</summary><div style="margin-top:8px"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem;gap:12px">
+  <div style="flex:1;min-width:0"><a href="https://doublezero.xyz" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;font-weight:600">DoubleZero (D0)</a> <span class="muted" style="font-size:0.78rem">— Dedicated high-performance network backbone for validators</span></div>
+  <span style="color:var(--green);font-size:0.7rem;font-weight:600;text-transform:uppercase;white-space:nowrap">Live on mainnet</span>
+</div><div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem;gap:12px">
+  <div style="flex:1;min-width:0"><a href="https://www.anza.xyz/blog/alpenglow-a-new-consensus-for-solana" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;font-weight:600">Alpenglow</a> <span class="muted" style="font-size:0.78rem">— Next-gen consensus protocol replacing Tower BFT — faster finality</span></div>
+  <span style="color:#eab308;font-size:0.7rem;font-weight:600;text-transform:uppercase;white-space:nowrap">In development</span>
+</div><div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem;gap:12px">
+  <div style="flex:1;min-width:0"><span style="font-weight:600">Harmonic</span> <span class="muted" style="font-size:0.78rem">— Network performance improvements for transaction processing</span></div>
+  <span style="color:#eab308;font-size:0.7rem;font-weight:600;text-transform:uppercase;white-space:nowrap">In development</span>
+</div></div></details>
+  <h4 style="margin-top:24px">SIMDs — Solana Improvement Documents <a href="https://github.com/solana-foundation/solana-improvement-documents/pulls" target="_blank" rel="noopener" class="source-link">GitHub &#8599;</a></h4>
+  <div class="stats-row" style="margin-bottom:12px">
+  <div class="stat"><div class="stat-label">Open</div><div class="stat-value">26</div></div>
+  <div class="stat"><div class="stat-label">Merged</div><div class="stat-value" style="color:var(--green)">1</div></div>
+  <div class="stat"><div class="stat-label">Closed</div><div class="stat-value">3</div></div>
+</div>
+  <details class="collapse"><summary>Recent SIMDs (10)</summary><div><div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.84rem">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a href="https://github.com/solana-foundation/solana-improvement-documents/pull/676" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">SIMD-0511: On-Chain Epoch Stakes</a>
+    <span style="color:#eab308;font-size:0.7rem;font-weight:600">OPEN</span>
+  </div>
+  <div class="muted" style="font-size:0.7rem">sam0x17 &middot; 2026-10-19</div>
+</div><div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.84rem">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a href="https://github.com/solana-foundation/solana-improvement-documents/pull/641" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">SIMD-0123: Refine inclusion based on Alpenglow, remove `DepositDelegatorRewards`</a>
+    <span style="color:#eab308;font-size:0.7rem;font-weight:600">OPEN</span>
+  </div>
+  <div class="muted" style="font-size:0.7rem">joncinque &middot; 2026-10-19</div>
+</div><div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.84rem">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a href="https://github.com/solana-foundation/solana-improvement-documents/pull/684" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">SIMD-0684: Loader V3: Allow Prefunded ProgramData</a>
+    <span style="color:#eab308;font-size:0.7rem;font-weight:600">OPEN</span>
+  </div>
+  <div class="muted" style="font-size:0.7rem">buffalojoec &middot; 2026-10-17</div>
+</div><div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.84rem">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a href="https://github.com/solana-foundation/solana-improvement-documents/pull/688" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">SIMD-0686: Single Program Runtime Environment</a>
+    <span style="color:#eab308;font-size:0.7rem;font-weight:600">OPEN</span>
+  </div>
+  <div class="muted" style="font-size:0.7rem">buffalojoec &middot; 2026-10-17</div>
+</div><div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.84rem">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a href="https://github.com/solana-foundation/solana-improvement-documents/pull/677" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">SIMD-0677: Vote Account v5</a>
+    <span style="color:#eab308;font-size:0.7rem;font-weight:600">OPEN</span>
+  </div>
+  <div class="muted" style="font-size:0.7rem">umar-bhatty &middot; 2026-10-16</div>
+</div><div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.84rem">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a href="https://github.com/solana-foundation/solana-improvement-documents/pull/683" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">SIMD-0683: Pass ABIv1 input metadata via registers r3–r5</a>
+    <span style="color:#eab308;font-size:0.7rem;font-weight:600">OPEN</span>
+  </div>
+  <div class="muted" style="font-size:0.7rem">febo &middot; 2026-10-15</div>
+</div><div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.84rem">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a href="https://github.com/solana-foundation/solana-improvement-documents/pull/648" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">SIMD-0648: Unbound LoaderV3 Instruction Data</a>
+    <span style="color:#eab308;font-size:0.7rem;font-weight:600">OPEN</span>
+  </div>
+  <div class="muted" style="font-size:0.7rem">2501babe &middot; 2026-10-15</div>
+</div><div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.84rem">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a href="https://github.com/solana-foundation/solana-improvement-documents/pull/675" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">SIMD-0675: Geo-Aware Leader Schedule</a>
+    <span style="color:#eab308;font-size:0.7rem;font-weight:600">OPEN</span>
+  </div>
+  <div class="muted" style="font-size:0.7rem">wattenhoferSOL &middot; 2026-10-15</div>
+</div><div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.84rem">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a href="https://github.com/solana-foundation/solana-improvement-documents/pull/696" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">SIMD-0088 Amendment: Hash validation in Core BPF migrations</a>
+    <span style="color:#eab308;font-size:0.7rem;font-weight:600">OPEN</span>
+  </div>
+  <div class="muted" style="font-size:0.7rem">buffalojoec &middot; 2026-10-15</div>
+</div><div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.84rem">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a href="https://github.com/solana-foundation/solana-improvement-documents/pull/695" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">[SIMD-0565] Specify compute unit costs for the SIMD-0565 secp256r1 syscalls</a>
+    <span style="color:#eab308;font-size:0.7rem;font-weight:600">OPEN</span>
+  </div>
+  <div class="muted" style="font-size:0.7rem">samkim-crypto &middot; 2026-10-14</div>
+</div></div></details>
+  
+</div>
+  </div>
+</div>
+<div class="dash-section" id="tx-econ">
+  <div class="section-title" onclick="toggleSection('tx-econ')">Transaction Economics<span class="section-toggle" id="toggle-tx-econ">&#9662;</span></div>
+  <div class="section-body" id="body-tx-econ">
+    
+    <div class="panel-section">
+  <div class="section-sources">Source: <a href="https://defillama.com/fees/solana" target="_blank">DeFiLlama Fees</a></div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-label">Base Fee</div><div class="stat-value">5e-06 SOL</div><div class="muted">5,000 lamports</div></div>
+    <div class="stat"><div class="stat-label">Priority Fee (Median)</div><div class="stat-value">0</div><div class="muted">micro-lamports</div></div>
+    <div class="stat"><div class="stat-label">Priority Fee (P75)</div><div class="stat-value">199,983</div><div class="muted">micro-lamports</div></div>
+    <div class="stat"><div class="stat-label">Priority Fee (P90)</div><div class="stat-value">1,477,853</div><div class="muted">micro-lamports</div></div>
+  </div>
+  <div class="muted" style="margin-top:8px">150 recent slots sampled</div>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="intelligence">
+  <div class="section-title" onclick="toggleSection('intelligence')">Intelligence<span class="section-toggle" id="toggle-intelligence">&#9662;</span></div>
+  <div class="section-body" id="body-intelligence">
+    
+    <div class="section-cols"><div><h4>Whales &amp; Staking</h4><div class="panel-section">
+  <div class="section-badge">0 events</div>
+  <p class="muted">No whale events detected today.</p>
+  <h4 style="margin-top:16px">Staking Flows <a href="https://defillama.com/protocols/Liquid%20Staking/Solana" target="_blank" rel="noopener" class="source-link">DeFiLlama &#8599;</a></h4><p>Total Liquid Staking TVL: <strong>$7.51B</strong></p><div class="staking-row">Sanctum Validator LSTs: $1.77B <span style="color:var(--red)">&#9660; -4.1%</span></div><div class="staking-row">Jito Liquid Staking: $1.12B <span style="color:var(--red)">&#9660; -4.1%</span></div><div class="staking-row">Binance Staked SOL: $1.10B <span style="color:var(--red)">&#9660; -4.3%</span></div><div class="staking-row">Jupiter Staked SOL: $555.82M <span style="color:var(--red)">&#9660; -4.1%</span></div><div class="staking-row">Marinade Native: $395.52M <span style="color:var(--red)">&#9660; -4.2%</span></div><div class="staking-row">Drift Staked SOL: $299.00M <span style="color:var(--red)">&#9660; -4.2%</span></div><div class="staking-row">Marinade Liquid Staking: $244.94M <span style="color:var(--red)">&#9660; -4.1%</span></div>
+</div></div><div><h4>Market Makers</h4><div class="panel-section"><h4>Recent Signals</h4><div class="mm-signal">
+  <span class="dot dot-green"></span>
+  <div class="mm-body">
+    <strong>Jump Trading</strong> &mdash; Firedancer validator client at 0.2% stake-weighted adoption on Solana mainnet
+    <div class="muted">Per Solana network upgrade data: &#x27;Firedancer / Frankendancer: Live on mainnet — Stake-Weighted Adoption: 0.2% — Jump Crypto&#x27;s independent validator client — key to client diversity.&#x27; Low adoption but live presence signals ongoing infrastructure commitment from Jump.</div>
+    <div class="mm-sentiment">Cautiously Bullish</div>
+  </div>
+</div><div class="mm-signal">
+  <span class="dot dot-gray"></span>
+  <div class="mm-body">
+    <strong>Binance</strong> &mdash; Binance Staked SOL (BNSOL) TVL at $1.10B despite 4.3% single-day decline
+    <div class="muted">Binance Staked SOL remains the #3 liquid staking protocol on Solana by TVL at $1.103B, per ecosystem TVL data. The 4.3% 1-day drop is the steepest among top-5 liquid staking protocols, suggesting some institutional unstaking pressure, potentially post-Drift hack contagion.</div>
+    <div class="mm-sentiment">Neutral</div>
+  </div>
+</div></div></div></div><div style="margin-top:20px"><div class="panel-section"><h4>Trending Narratives</h4><div class="narr-item">
+  <span class="narr-arrow">&#9656;</span>
+  <strong>Drift $295M Hack Recovery Tokens — Protocol Risk Repricing</strong> &mdash; Drift protocol is issuing &#x27;recovery tokens&#x27; following a $295M hack rather than direct reimbursement. This is creating a new precedent for hack recovery mechanics on Solana and is likely the primary driver of the staking pool sector&#x27;s 10.5% 24h TVL crash. Questions around recovery token valuation and protocol liability models are spreading across the ecosystem.
+</div><div class="narr-item">
+  <span class="narr-arrow">&#9656;</span>
+  <strong>RWA Is the Only Green Sector on Solana</strong> &mdash; While liquid staking (-4.1%), lending (-2.4%), and DEXs (-1.3%) all bled TVL, RWA protocols OnRe and Huma both held or grew. JPMorgan&#x27;s JPM Coin on Ethereum and ONDO trending in CoinGecko top 10 are amplifying the institutional RWA narrative. Pre-stock tokens on Solana (OPENAI +10.5%, SpaceX +3.7%) are also seeing outsized moves.
+</div><div class="narr-item">
+  <span class="narr-arrow">&#9656;</span>
+  <strong>Geo-Aware Leader Schedule — Solana&#x27;s Latency Geography Play</strong> &mdash; SIMD-0675 proposes a geo-aware leader schedule for Solana validators, which would reduce latency for geographically clustered validator sets. The Solana Foundation published supporting documentation today. This is a technical but significant upgrade for global institutional validator operators and could influence stake routing decisions.
+</div><div class="narr-item">
+  <span class="narr-arrow">&#9656;</span>
+  <strong>Coinbase Cuts 700 Jobs and Blames AI — Crypto Efficiency Narrative</strong> &mdash; Coinbase CEO Brian Armstrong announced 700 layoffs attributed to AI automation. Coinbase stock popped on the news. This narrative — AI reducing headcount at crypto-native companies — is running parallel to the AI agent and DePIN narratives on Solana. Venice Token (VVV) trending on CoinGecko may be partially capturing this flow.
+</div><div class="narr-item">
+  <span class="narr-arrow">&#9656;</span>
+  <strong>Pokémon Cards Onchain — $11M in DeFi Marketplace Volume</strong> &mdash; DL News reports DeFi marketplaces generated $11M from Pokémon trading card activity onchain. This is a new consumer use case for DeFi infrastructure — physical collectibles with onchain provenance and trading. It&#x27;s an early signal for the gaming/collectibles sector crossover that Solana&#x27;s high throughput is designed to serve.
+</div><div class="narr-item">
+  <span class="narr-arrow">&#9656;</span>
+  <strong>PUMP Token Trending with Negative Funding on Hyperliquid</strong> &mdash; PUMP (Pump.fun&#x27;s token) is #7 by 24h volume on Hyperliquid at $150M with -0.0004%/hr funding rate — the only top-10 perp with negative funding. This means shorts are paying longs, a contrarian signal that the market is positioned short PUMP while price is up 6.7% on the day. Short squeeze risk is elevated.
+</div></div></div>
+  </div>
+</div>
+<div class="dash-section" id="competitive">
+  <div class="section-title" onclick="toggleSection('competitive')">Chain Market Share<span class="section-toggle" id="toggle-competitive">&#9662;</span></div>
+  <div class="section-body" id="body-competitive">
+    <div class="section-sources">Sources: <a href="https://defillama.com/chains" target="_blank">DeFiLlama Chains</a> &middot; <a href="https://www.coingecko.com/en/trending" target="_blank">CoinGecko Trending</a><span class="freshness" style="color:var(--red)" title="Data fetched: 2026-10-12 20:22 UTC">6d ago</span></div>
+    <div class="panel-section">
+  <div class="stats-row" style="margin-bottom:16px">
+    <div class="stat"><div class="stat-label">Total Top-10 TVL</div><div class="stat-value">$83.57B</div></div>
+    <div class="stat"><div class="stat-label">Solana Market Share</div><div class="stat-value" style="color:var(--accent)">7.3%</div></div>
+  </div>
+  <div style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+    <span style="font-weight:400;color:var(--text)">Ethereum</span>
+    <span><strong>61.3%</strong> <span class="muted">$51.22B</span></span>
+  </div>
+  <div style="background:var(--surface2);height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="background:var(--muted);height:100%;width:61.29260827999854%;border-radius:3px"></div>
+  </div>
+</div><div style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+    <span style="font-weight:400;color:var(--text)">Base</span>
+    <span><strong>7.4%</strong> <span class="muted">$6.17B</span></span>
+  </div>
+  <div style="background:var(--surface2);height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="background:var(--muted);height:100%;width:7.3841791373848675%;border-radius:3px"></div>
+  </div>
+</div><div style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+    <span style="font-weight:700;color:var(--accent)">Solana</span>
+    <span><strong>7.3%</strong> <span class="muted">$6.12B</span></span>
+  </div>
+  <div style="background:var(--surface2);height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="background:var(--accent);height:100%;width:7.318142013819082%;border-radius:3px"></div>
+  </div>
+</div><div style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+    <span style="font-weight:400;color:var(--text)">Tron</span>
+    <span><strong>6.7%</strong> <span class="muted">$5.59B</span></span>
+  </div>
+  <div style="background:var(--surface2);height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="background:var(--muted);height:100%;width:6.685380716015354%;border-radius:3px"></div>
+  </div>
+</div><div style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+    <span style="font-weight:400;color:var(--text)">BSC</span>
+    <span><strong>6.7%</strong> <span class="muted">$5.56B</span></span>
+  </div>
+  <div style="background:var(--surface2);height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="background:var(--muted);height:100%;width:6.657583750316433%;border-radius:3px"></div>
+  </div>
+</div><div style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+    <span style="font-weight:400;color:var(--text)">Bitcoin</span>
+    <span><strong>5.3%</strong> <span class="muted">$4.40B</span></span>
+  </div>
+  <div style="background:var(--surface2);height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="background:var(--muted);height:100%;width:5.27103094324933%;border-radius:3px"></div>
+  </div>
+</div><div style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+    <span style="font-weight:400;color:var(--text)">Arbitrum</span>
+    <span><strong>1.6%</strong> <span class="muted">$1.37B</span></span>
+  </div>
+  <div style="background:var(--surface2);height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="background:var(--muted);height:100%;width:1.6381122169935727%;border-radius:3px"></div>
+  </div>
+</div><div style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+    <span style="font-weight:400;color:var(--text)">Hyperliquid L1</span>
+    <span><strong>1.3%</strong> <span class="muted">$1.07B</span></span>
+  </div>
+  <div style="background:var(--surface2);height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="background:var(--muted);height:100%;width:1.2857582830148127%;border-radius:3px"></div>
+  </div>
+</div><div style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+    <span style="font-weight:400;color:var(--text)">Robinhood Chain</span>
+    <span><strong>1.3%</strong> <span class="muted">$1.06B</span></span>
+  </div>
+  <div style="background:var(--surface2);height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="background:var(--muted);height:100%;width:1.2645739373505283%;border-radius:3px"></div>
+  </div>
+</div><div style="margin-bottom:8px">
+  <div style="display:flex;justify-content:space-between;font-size:0.82rem">
+    <span style="font-weight:400;color:var(--text)">Monad</span>
+    <span><strong>1.2%</strong> <span class="muted">$1.01B</span></span>
+  </div>
+  <div style="background:var(--surface2);height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="background:var(--muted);height:100%;width:1.2026307218574852%;border-radius:3px"></div>
+  </div>
+</div>
+</div>
+  <div style="margin-top:20px">
+    <h4>Trending on CoinGecko <a href="https://www.coingecko.com/en/trending" target="_blank" rel="noopener" class="source-link">View All &#8599;</a></h4>
+    <div class="trending-row"><span class="trending-tag">#96 <strong>PRL</strong></span><span class="trending-tag">#19 <strong>NEAR</strong></span><span class="trending-tag">#1 <strong>BTC</strong></span><span class="trending-tag">#90 <strong>ZRO</strong></span><span class="trending-tag">#11 <strong>HYPE</strong></span><span class="trending-tag">#7 <strong>SOL</strong></span><span class="trending-tag">#48 <strong>ONDO</strong></span><span class="trending-tag">#71 <strong>VVV</strong></span><span class="trending-tag">#49 <strong>PUMP</strong></span><span class="trending-tag">#82 <strong>PI</strong></span></div>
+  </div>
+  </div>
+</div>
+<div class="dash-section" id="trade">
+  <div class="section-title" onclick="toggleSection('trade')">So, What's the Trade?<span class="section-toggle" id="toggle-trade">&#9662;</span></div>
+  <div class="section-body" id="body-trade">
+    
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent);font-weight:700;margin-bottom:10px">Track Record — last 90 days</div>
+  <div style="display:flex;gap:14px;flex-wrap:wrap">
+    <div style="flex:1;min-width:110px"><div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">Scored Calls</div><div style="font-size:1rem;font-weight:700;margin-top:2px;">224</div></div>
+    <div style="flex:1;min-width:110px"><div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">Hit Rate</div><div style="font-size:1rem;font-weight:700;margin-top:2px;">41%</div></div>
+    <div style="flex:1;min-width:110px"><div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">Avg Return</div><div style="font-size:1rem;font-weight:700;margin-top:2px;color:var(--green)">+1.2%</div></div>
+    <div style="flex:1;min-width:110px"><div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">Best</div><div style="font-size:1rem;font-weight:700;margin-top:2px;color:var(--green)">HNT  <span style='font-size:0.7rem;color:var(--muted)'>+120.4%</span></div></div>
+    <div style="flex:1;min-width:110px"><div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">Worst</div><div style="font-size:1rem;font-weight:700;margin-top:2px;color:var(--red)">JTO  <span style='font-size:0.7rem;color:var(--muted)'>-30.1%</span></div></div>
+  </div>
+</div><div class="panel-section">
+  <div style="font-size:0.78rem;color:var(--muted);margin-bottom:16px;font-style:italic">NFA. Data-driven analysis only — do your own research.</div>
+  <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent);font-weight:600;margin-bottom:4px">Macro</div>
+  <div style="font-size:0.88rem">F&amp;G at 59 (Greed) with BTC rejected at $83K and bond yields reversing higher — risk-on is tentative, not confirmed. BTC dominance at 59.6% means alt season capital rotation has not begun. Macro is a headwind, but not a ceiling-breaker yet.</div>
+</div><div style="padding:10px 0;border-bottom:1px solid var(--border)">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent);font-weight:600;margin-bottom:4px">Crypto</div>
+  <div style="font-size:0.88rem">BTC and ETH both green on the day but not breaking resistance. Altcoins outperforming on the margins (SOL +2%, JTO +4.2%, ZEC +3.8%) but without macro confirmation, these moves are technically driven, not flow-driven. Capital is in stablecoins waiting for a signal.</div>
+</div><div style="padding:10px 0;border-bottom:1px solid var(--border)">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent);font-weight:600;margin-bottom:4px">Solana</div>
+  <div style="font-size:0.88rem">SOL RSI at 19 is the most extreme oversold reading in the dataset — price is above the 200-day MA ($87.71) and structurally intact. TVL at $6.12B is compressing but $66B in stablecoins on-chain suggests capital hasn&#x27;t left. The Drift hack is a near-term negative for liquid staking sentiment but isolating, not systemic.</div>
+</div><div style="padding:10px 0;border-bottom:1px solid var(--border)">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent);font-weight:600;margin-bottom:4px">Sector</div>
+  <div style="font-size:0.88rem">RWA is the only Solana sector with positive 24h TVL (+1.1%) and is showing 7-day resilience (OnRe flat, Huma -1.1%) while every other major sector is down 4-10% on the week. With JPMorgan launching JPM Coin on Ethereum, ONDO trending CoinGecko top 10, and tokenized pre-stocks on Solana (OPENAI +10.5%, SpaceX +3.7%) showing strong volume, the institutional RWA narrative is gaining structural momentum.</div>
+</div>
+  <h4 style="margin-top:16px">Names to Watch</h4><div style="display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border)">
+  <span style="font-weight:700;color:var(--accent);font-size:0.95rem;min-width:50px">JTO</span>
+  <span style="font-size:0.84rem">Top performer at +4.2% 24h while Jito Liquid Staking TVL bottoms at $1.12B (-10.2% 7d). Price diverging from TVL — either smart money front-running a TVL recovery or a liquidity trap. High risk, high reward. Jito staking yield at 4.8% APY with $1.13B TVL provides fundamental floor.</span>
+</div><div style="display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border)">
+  <span style="font-weight:700;color:var(--accent);font-size:0.95rem;min-width:50px">ONDO</span>
+  <span style="font-size:0.84rem">ONDO trending #7 on CoinGecko, +1.4% on the day. RWA sector is the only green Solana sector (+1.1% TVL 24h). JPMorgan JPM Coin on Ethereum validates the tokenized RWA narrative ONDO is built on. Macro institutional tailwind is directly supporting this sector.</span>
+</div><div style="display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border)">
+  <span style="font-weight:700;color:var(--accent);font-size:0.95rem;min-width:50px">RAY</span>
+  <span style="font-size:0.84rem">Raydium AMM volume surged 51.4% to $160.6M 24h while TVL held relatively flat (+0.3% 1d). Fee revenue capture is increasing against stable collateral — a positive fee/TVL ratio divergence. Raydium remains the #3 protocol by TVL at $1.24B.</span>
+</div><div style="display:flex;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border)">
+  <span style="font-weight:700;color:var(--accent);font-size:0.95rem;min-width:50px">HNT</span>
+  <span style="font-size:0.84rem">HNT +1.5% on the day. DePIN sector not explicitly broken out in today&#x27;s TVL data but RNDR and HNT both in green territory. With AI/DePIN narratives persistent (Venice Token trending, NEAR trending) and Solana being DePIN&#x27;s primary chain, HNT is the most liquid DePIN token on Solana with direct network utility metrics.</span>
+</div>
+  <div style="margin-top:16px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)">Conviction</div>
+      <div style="font-size:1.3rem;font-weight:700;color:#eab308">Moderate</div>
+    </div>
+    <div style="font-size:0.88rem;color:var(--muted);max-width:70%">RSI-19 and $66B stablecoin supply are technically compelling but macro headwinds (bond yields, BTC dominance 59.6%, Drift hack contagion) prevent a Strong call — wait for BTC to clear $83K or a Solana-specific catalyst from Breakpoint.</div>
+  </div>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="news">
+  <div class="section-title" onclick="toggleSection('news')">News Feed<span class="section-toggle" id="toggle-news">&#9662;</span></div>
+  <div class="section-body" id="body-news">
+    <div class="section-sources"><span class="freshness" style="color:var(--green)" title="Data fetched: 2026-10-19 17:37 UTC">3m ago</span></div>
+    <div class="panel-section">
+  <div class="section-badge">38 stories</div>
+  <div class="news-item">
+  <a href="https://www.dlnews.com/articles/defi/defi-rides-pokemon-trading-card-boom/" target="_blank" rel="noopener">DeFi rides Pokémon trading card boom as onchain marketplaces bring in $11m</a>
+  <span class="news-source">DL News</span>
+  <span class="news-cat">DeFi</span>
+</div><div class="news-item">
+  <a href="https://www.dlnews.com/articles/defi/uniswap-dao-votes-to-take-back-loaned-uni-tokens/" target="_blank" rel="noopener">Uniswap DAO votes to take back $42m of governance tokens loaned to delegates</a>
+  <span class="news-source">DL News</span>
+  <span class="news-cat">DeFi</span>
+</div><div class="news-item">
+  <a href="https://solana.com/news/solana-changelog-october-8-2026" target="_blank" rel="noopener">Solana Changelog: October 8, 2026</a>
+  <span class="news-source">Solana Foundation</span>
+  <span class="news-cat">Solana</span>
+</div><div class="news-item">
+  <a href="https://cointelegraph.com/markets/bitcoin-is-rejected-at-83k-as-us-bond-yields-reverse-higher-with-equities?utm_source=rss_feed&amp;utm_medium=rss&amp;utm_campaign=rss_partner_inbound" target="_blank" rel="noopener">Bitcoin is rejected at $83K as US bond yields reverse higher with equities</a>
+  <span class="news-source">CoinTelegraph</span>
+  <span class="news-cat">DeFi, Bitcoin</span>
+</div><div class="news-item">
+  <a href="https://www.theblock.co/news/business/2026-10-19-skyai-sells-off-entire-solana-treasury-launches-201-million-buyback-421037" target="_blank" rel="noopener">SkyAI sells off entire Solana treasury as it launches $201 million buyback</a>
+  <span class="news-source">The Block</span>
+  <span class="news-cat">Solana, RWA</span>
+</div><div class="news-item">
+  <a href="https://solana.com/news/geo-aware-leader-schedule" target="_blank" rel="noopener">Geo-Aware Leader Schedule</a>
+  <span class="news-source">Solana Foundation</span>
+  <span class="news-cat">General</span>
+</div><div class="news-item">
+  <a href="https://www.dlnews.com/articles/defi/drift-to-issue-recovery-tokens-in-wake-of-295m-hack/" target="_blank" rel="noopener">Drift to issue ‘recovery tokens’ in wake of $295m hack</a>
+  <span class="news-source">DL News</span>
+  <span class="news-cat">General</span>
+</div><div class="news-item">
+  <a href="https://www.dlnews.com/articles/markets/coinbase-cuts-jobs-and-blames-artificial-intelligence/" target="_blank" rel="noopener">Coinbase shares pop as CEO Brian Armstrong cuts 700 jobs and blames AI</a>
+  <span class="news-source">DL News</span>
+  <span class="news-cat">General</span>
+</div><div class="news-item">
+  <a href="https://solana.com/news/breakpoint-guide-part2" target="_blank" rel="noopener">Breakpoint 2026: Booked Breakpoint? Let&#x27;s Get You Prepped (Part 2)</a>
+  <span class="news-source">Solana Foundation</span>
+  <span class="news-cat">General</span>
+</div><div class="news-item">
+  <a href="https://www.dlnews.com/articles/opinion/opinion-lord-kulveer-ranger-on-digital-assets/" target="_blank" rel="noopener">Lord Kulveer Ranger on digital assets, digital pound, and stablecoins</a>
+  <span class="news-source">DL News</span>
+  <span class="news-cat">Stablecoin</span>
+</div><div class="news-item">
+  <a href="https://decrypt.co/381343/jpmorgan-jpm-coin-ethereum-bank-dollars" target="_blank" rel="noopener">JPMorgan&#x27;s JPM Coin Arrives on Ethereum, Putting Bank Dollars on a Public Blockchain</a>
+  <span class="news-source">Decrypt</span>
+  <span class="news-cat">General</span>
+</div><div class="news-item">
+  <a href="https://cointelegraph.com/news/revolut-secures-gibraltar-crypto-license-to-support-global-expansion?utm_source=rss_feed&amp;utm_medium=rss&amp;utm_campaign=rss_partner_inbound" target="_blank" rel="noopener">Revolut secures Gibraltar crypto license to support global expansion</a>
+  <span class="news-source">CoinTelegraph</span>
+  <span class="news-cat">Regulation</span>
+</div><div class="news-item">
+  <a href="https://solana.com/news/geo-aware-leader-schedule" target="_blank" rel="noopener">Geo-Aware Leader Schedule</a>
+  <span class="news-source">Solana Foundation</span>
+</div><div class="news-item">
+  <a href="https://www.dlnews.com/articles/defi/drift-to-issue-recovery-tokens-in-wake-of-295m-hack/" target="_blank" rel="noopener">Drift to issue ‘recovery tokens’ in wake of $295m hack</a>
+  <span class="news-source">DL News</span>
+</div><div class="news-item">
+  <a href="https://www.dlnews.com/articles/defi/defi-rides-pokemon-trading-card-boom/" target="_blank" rel="noopener">DeFi rides Pokémon trading card boom as onchain marketplaces bring in $11m</a>
+  <span class="news-source">DL News</span>
+</div><div class="news-item">
+  <a href="https://www.dlnews.com/articles/markets/coinbase-cuts-jobs-and-blames-artificial-intelligence/" target="_blank" rel="noopener">Coinbase shares pop as CEO Brian Armstrong cuts 700 jobs and blames AI</a>
+  <span class="news-source">DL News</span>
+</div><div class="news-item">
+  <a href="https://www.dlnews.com/articles/defi/uniswap-dao-votes-to-take-back-loaned-uni-tokens/" target="_blank" rel="noopener">Uniswap DAO votes to take back $42m of governance tokens loaned to delegates</a>
+  <span class="news-source">DL News</span>
+</div><div class="news-item">
+  <a href="https://solana.com/news/breakpoint-guide-part2" target="_blank" rel="noopener">Breakpoint 2026: Booked Breakpoint? Let&#x27;s Get You Prepped (Part 2)</a>
+  <span class="news-source">Solana Foundation</span>
+</div>
+  <h4 style="margin-top:20px">&#9654; Top Crypto YouTube</h4><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+  <img src="https://i.ytimg.com/vi/L2w72EoTLqs/mqdefault.jpg" style="width:120px;height:68px;border-radius:4px;object-fit:cover;flex-shrink:0" alt="">
+  <div>
+    <a href="https://www.youtube.com/watch?v=L2w72EoTLqs" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;font-size:0.84rem;line-height:1.3;display:block">The US Housing Market is BREAKING (few are ready)</a>
+    <span class="muted" style="font-size:0.7rem">Coin Bureau</span>
+  </div>
+</div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+  <img src="https://i.ytimg.com/vi/H_JhpNaRPl8/mqdefault.jpg" style="width:120px;height:68px;border-radius:4px;object-fit:cover;flex-shrink:0" alt="">
+  <div>
+    <a href="https://www.youtube.com/watch?v=H_JhpNaRPl8" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;font-size:0.84rem;line-height:1.3;display:block">Bitcoin Extreme Uncertainty</a>
+    <span class="muted" style="font-size:0.7rem">CoinDesk</span>
+  </div>
+</div><div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+  <img src="https://i.ytimg.com/vi/U6sxotkGqPw/mqdefault.jpg" style="width:120px;height:68px;border-radius:4px;object-fit:cover;flex-shrink:0" alt="">
+  <div>
+    <a href="https://www.youtube.com/watch?v=U6sxotkGqPw" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;font-size:0.84rem;line-height:1.3;display:block">NFA Live! Bitcoin, Rates, SPX</a>
+    <span class="muted" style="font-size:0.7rem">CoinDesk</span>
+  </div>
+</div>
+</div>
+  </div>
+</div>
+<div class="dash-section" id="briefing">
+  <div class="section-title" onclick="toggleSection('briefing')">Daily Briefing Script<span class="section-toggle" id="toggle-briefing">&#9662;</span></div>
+  <div class="section-body" id="body-briefing">
+    <div class="section-sources">Written by Claude for video/podcast voiceover<span class="freshness" style="color:var(--green)" title="Data fetched: 2026-10-19 17:36 UTC">4m ago</span></div>
+    <div class="panel-section">
+  <div class="brief-header">
+    <span class="muted">~3-4 min read &middot; for video/podcast voiceover</span>
+    <button class="copy-btn" type="button" onclick="copyBriefing(this)">Copy full script</button>
+  </div>
+  <pre class="briefing-box" id="briefing-text">[COLD OPEN]
+
+Solana&#x27;s RSI just hit 19. The market is in Greed at 59 on Fear and Greed. Those two numbers should not coexist — and that divergence is today&#x27;s entire story. Let&#x27;s get into it.
+
+---
+
+[SEGMENT 1: MARKET]
+
+Macro first. BTC got rejected at $83,000 as US bond yields reversed higher. That&#x27;s not a breakout — that&#x27;s a test that failed. BTC dominance is at 59.6%, which means the alt rotation trade is still on hold. Total market cap is at $2.76 trillion, down 0.7% on the day.
+
+But here&#x27;s the interesting part. SOL is outperforming. Up 2% on the day versus BTC&#x27;s 1% and ETH&#x27;s 1.2%. JTO is the standout — up 4.2%. ZEC is up 3.8% and seeing massive Hyperliquid perp volume at $340 million, which is unusual and worth watching.
+
+SOL is trading at $103.99. The 50-day moving average is $109.36 — that&#x27;s resistance. The 200-day is $87.71 — that&#x27;s your floor. RSI at 19 is deeply oversold. Not a price target, but a technical condition that historically does not sustain.
+
+---
+
+[SEGMENT 2: NEWS]
+
+The biggest story today is the Drift hack. $295 million was taken. And the protocol&#x27;s response? Recovery tokens. Not direct reimbursement — a new token that represents a claim on future protocol revenue or reserves. This is a new mechanism in DeFi and it&#x27;s already moving markets. The staking pool sector on Solana dropped 10.5% in 24 hours. That is not a coincidence.
+
+Second story: SkyAI sold its entire Solana treasury and launched a $201 million buyback. That&#x27;s a significant treasury action — company converting SOL to something else, possibly USD or BTC, then using it to buy back their own token. Read into that what you will about institutional confidence in SOL at current levels.
+
+Third: JPMorgan launched JPM Coin on Ethereum&#x27;s public blockchain. This is a watershed moment for institutional tokenization. It validates the RWA sector and puts pressure on every other chain — including Solana — to attract similar flows.
+
+And Coinbase cut 700 jobs, blaming AI. Stock went up. The market is rewarding efficiency over headcount in crypto infrastructure companies.
+
+---
+
+[SEGMENT 3: SOLANA]
+
+Solana TVL sits at $6.12 billion — down 1.5% on the day, down materially on the week. But here&#x27;s what the headline misses: $66.13 billion in stablecoins are sitting on Solana. Capital has not left the chain. It&#x27;s parked.
+
+Sector rotation breakdown. Liquid staking is the biggest loser — down 4.1% in 24 hours, down roughly 10% on the week across Jito, Marinade, Sanctum, and Binance&#x27;s BNSOL. Drift hack contagion is the likely driver.
+
+Lending is down 2.4%. DEXs down 1.3%. Derivatives down 3.1%.
+
+The only green sector: RWA. Up 1.1% in 24 hours. OnRe is flat, Huma is up 2.3%. This is not an accident on a day when JPMorgan is making blockchain headlines.
+
+DEX volume tells a different story from TVL. Orca surged 111% to $250 million in 24h — now the top spot DEX on Solana. Raydium AMM up 51.4%. Manifest Trade up 63.9%. PumpSwap down 42%. The rotation is from meme liquidity to professional AMM infrastructure. That&#x27;s a behavior change worth noting.
+
+On yields: Jupiter Lend USDC is paying 5.7%. JupSOL is at 5.5%. OnRe&#x27;s ONYC is at 11%. The average DeFi APY on Solana is 10.3%, with the best stable yield at 45%. There is significant yield compression happening at the blue-chip level.
+
+Network stats: 5,554 TPS total, 2,490 non-vote. Fees at $11.3 million in 24 hours. The network is healthy even as price and TVL compress.
+
+---
+
+[SEGMENT 4: WHALE WATCH]
+
+Liquid staking total TVL is $7.51 billion across all protocols. Every major provider is down 4% plus in 24 hours. Sanctum, Jito, Binance, Jupiter — all moving in lockstep. This is coordinated unstaking, likely driven by Drift hack uncertainty and broader risk-off sentiment in the liquid staking sector.
+
+Jito&#x27;s token JTO is up 4.2% while Jito&#x27;s protocol TVL is down 10.2% on the week. That divergence is the whale watch signal of the day. Someone is buying JTO while the TVL bleeds. Front-running a recovery or catching a falling knife — you decide.
+
+On the perp side, PUMP token on Hyperliquid has negative funding at -0.0004% per hour. That means short positions are paying long positions. Price is up 6.7% on the day with $150 million in volume. The short base is getting squeezed. This is a setup, not a trend.
+
+Jump Crypto&#x27;s Firedancer client is live on Solana mainnet at 0.2% stake-weighted adoption. Low adoption but active — and every percentage point of Firedancer adoption increases Solana&#x27;s client diversity and institutional credibility.
+
+---
+
+[SEGMENT 5: CT PULSE]
+
+Five narratives running hot right now.
+
+One: The Drift recovery token model. The question on everyone&#x27;s mind is whether recovery tokens are a legitimate remedy or a way to defer pain. The community is divided and the staking pool TVL data says the market has already voted — for now.
+
+Two: RWA as the institutional safe harbor. With JPMorgan on Ethereum and OnRe and Huma holding TVL on Solana, the RWA narrative is not just theoretical anymore. ONDO is trending top 10 on CoinGecko. The institutions are choosing their chains.
+
+Three: Geo-Aware Leader Schedule. SIMD-0675 is a technical proposal but it has political implications for Solana&#x27;s global validator network. Which geography gets priority in the leader schedule affects MEV capture and staking economics at scale.
+
+Four: Coinbase&#x27;s AI layoffs. 700 jobs cut, stock pops. The crypto infrastructure layer is becoming more AI-automated. What does that mean for human validator operations, protocol teams, and the DePIN networks that depend on distributed human participation?
+
+Five: Pokémon cards onchain. $11 million in DeFi marketplace volume from trading card activity. Gaming and collectibles are finding their DeFi rails. Solana&#x27;s throughput is built for exactly this use case — the question is whether the consumer apps can capture the attention.
+
+---
+
+[CLOSE]
+
+So what is the trade? RSI 19. $66 billion in stablecoins. RWA as the only green sector. JTO diverging from Jito TVL. PUMP with a short squeeze setup on Hyperliquid.
+
+The macro is a headwind — BTC couldn&#x27;t clear $83K, yields are moving against risk assets, and BTC dominance says the alt rotation hasn&#x27;t started. But Solana&#x27;s technical setup is as oversold as it gets for a large-cap.
+
+The data says: watch RWA for institutional flow confirmation, watch JTO for a liquid staking bottom signal, watch $83K BTC as the macro unlock.
+
+This is Thomas Bahamas. Data first. Always. See you tomorrow.</pre>
+</div>
+  </div>
+</div>
+
+<footer>
+  <a href="/">solanaweekly.io</a> &middot; Daily Solana Intelligence &middot; 2026-10-19 17:38 UTC
+</footer>
+
+<button class="back-top" id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">&#9650;</button>
+
+<script>
+// Section collapse/expand with localStorage persistence
+function toggleSection(id) {
+  var body = document.getElementById('body-' + id);
+  var toggle = document.getElementById('toggle-' + id);
+  if (!body) return;
+  var collapsed = JSON.parse(localStorage.getItem('sw-collapsed') || '{}');
+  if (body.style.display === 'none') {
+    body.style.display = '';
+    if (toggle) toggle.innerHTML = '&#9662;';
+    delete collapsed[id];
+  } else {
+    body.style.display = 'none';
+    if (toggle) toggle.innerHTML = '&#9656;';
+    collapsed[id] = true;
+  }
+  localStorage.setItem('sw-collapsed', JSON.stringify(collapsed));
+}
+// Restore collapsed state on load — merge in default-collapsed sections
+// for first-time visitors so long/dense panels don't dominate above the fold.
+(function() {
+  var DEFAULTS = {'briefing': true};
+  var DEFAULTS_KEY = 'sw-defaults-v1';
+  var collapsed = JSON.parse(localStorage.getItem('sw-collapsed') || '{}');
+  if (!localStorage.getItem(DEFAULTS_KEY)) {
+    for (var k in DEFAULTS) {
+      if (DEFAULTS.hasOwnProperty(k) && !(k in collapsed)) collapsed[k] = true;
+    }
+    localStorage.setItem('sw-collapsed', JSON.stringify(collapsed));
+    localStorage.setItem(DEFAULTS_KEY, '1');
+  }
+  for (var id in collapsed) {
+    if (!collapsed.hasOwnProperty(id)) continue;
+    var body = document.getElementById('body-' + id);
+    var toggle = document.getElementById('toggle-' + id);
+    if (body) body.style.display = 'none';
+    if (toggle) toggle.innerHTML = '&#9656;';
+  }
+})();
+
+// Kit newsletter subscribe
+function dashSubscribe(e) {
+  e.preventDefault();
+  var email = document.getElementById('dash-nl-email').value;
+  var msg = document.getElementById('dash-nl-msg');
+  var btn = document.querySelector('.nl-btn');
+  btn.disabled = true; btn.textContent = '...';
+  fetch('https://api.convertkit.com/v3/forms/9240695/subscribe', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({api_key: 'PvJNzxZ5JOLRr4pA0Mps2w', email: email})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    msg.style.display = 'inline';
+    if (data.subscription) {
+      msg.style.color = 'var(--green)';
+      msg.textContent = "You're in!";
+      document.getElementById('dash-nl-email').value = '';
+    } else {
+      msg.style.color = '#f97316';
+      msg.textContent = data.message || 'Try again.';
+    }
+    btn.disabled = false; btn.textContent = 'Subscribe';
+  })
+  .catch(function() {
+    msg.style.display = 'inline';
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Error. Try again.';
+    btn.disabled = false; btn.textContent = 'Subscribe';
+  });
+  return false;
+}
+
+// Copy briefing script to clipboard
+function copyBriefing(btn) {
+  var el = document.getElementById('briefing-text');
+  if (!el) return;
+  var text = el.innerText || el.textContent || '';
+  var done = function() {
+    var orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.disabled = true;
+    setTimeout(function() { btn.textContent = orig; btn.disabled = false; }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {});
+    return;
+  }
+  // Fallback
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) {}
+  document.body.removeChild(ta);
+}
+
+// Scroll-spy: highlight active section in nav
+(function() {
+  var links = document.querySelectorAll('.section-nav a');
+  var sections = [];
+  for (var i = 0; i < links.length; i++) {
+    var id = links[i].getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({el: el, link: links[i]});
+  }
+  var backTop = document.getElementById('back-top');
+  function onScroll() {
+    var scrollY = window.scrollY + 80;
+    var active = sections[0];
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].el.offsetTop <= scrollY) active = sections[i];
+    }
+    for (var i = 0; i < sections.length; i++) {
+      sections[i].link.classList.toggle('active', sections[i] === active);
+    }
+    if (backTop) backTop.classList.toggle('visible', window.scrollY > 600);
+  }
+  window.addEventListener('scroll', onScroll, {passive: true});
+  onScroll();
+})();
+</script>
+</body>
+</html>
